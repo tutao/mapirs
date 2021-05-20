@@ -12,3 +12,5 @@ crate-type = ["cdylib"]
 [dependencies]
 libc = "0.2"
 bitflags = "1.0"
+winreg = "0.8.0"
+directories = "3.0.2"
