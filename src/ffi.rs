@@ -16,35 +16,20 @@ use crate::flags::{
 	MapiDetailsFlags,
 };
 
-use std::convert::TryFrom;
-use std::fs;
-use std::fs::{
-	OpenOptions,
-	File,
+use crate::environment::{
+	client_path,
+	log_file,
+	current_time_millis,
 };
-use std::io::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use directories::BaseDirs;
+use crate::commands::send_mail;
 
-fn get_current_time() -> ::std::time::Duration {
-	SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards")
-}
+use std::convert::TryFrom;
+use std::io::Write;
 
 fn log_to_file(caller: &str, stuff: &str) -> () {
-	let base_dirs = BaseDirs::new().unwrap();
-	let data_dir = base_dirs.data_dir();
-	let logpath = data_dir.join("tutanota-desktop");
-	let logfile = logpath.join("mapilog.txt");
-	fs::create_dir_all(logpath).unwrap();
-	let mut file = OpenOptions::new()
-		.write(true)
-		.append(true)
-		.open(logfile.clone()) // PathBuf is not copy
-		.or_else(|_|{File::create(logfile)})
-		.unwrap();
-
-	if let Err(e) = writeln!(file, "{} | {}: {}", get_current_time().as_millis(), caller, stuff) {
+	let mut lf = log_file().unwrap();	
+	if let Err(e) = writeln!(lf, "{} | {}: {}", current_time_millis(), caller, stuff) {
 		eprintln!("Couldn't write to file: {}", e);
 	}
 }
@@ -85,9 +70,13 @@ pub extern "C" fn MAPISendMail(
 	reserved: u64,
 	
 ) -> MapiStatusCode {
+	send_mail();
 	let msg = Message::try_from(message);
 	let text = format!("session: {:?},\nui_param: {:?},\nmessage: {:?},\nflags: {:?}\n", session, ui_param, msg, flags);
 	log_to_file("mapisendmail", &text);
+	let pcos = client_path().unwrap();
+	let ps : &str = pcos.to_str().unwrap();
+	log_to_file("mapisendmail", ps);
 	MapiStatusCode::NotSupported
 }
 
