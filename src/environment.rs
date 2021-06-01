@@ -48,8 +48,8 @@ pub fn log_file() -> io::Result<File> {
    			"Could not access BaseDirs"
    		))?; 
 	let data_dir = base_dirs.data_dir();
-	let logpath = data_dir.join("tutanota-desktop");
-	let logfile = logpath.join("mapilog.txt");
+	let logpath = data_dir.join("tutanota-desktop").join("logs");
+	let logfile = logpath.join("mapi.log");
 
    	// this may fail if the path is not writable
 	fs::create_dir_all(logpath)?;

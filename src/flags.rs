@@ -1,7 +1,9 @@
 
+use crate::types::*;
+
 bitflags! {
 	#[repr(C)]
-	pub struct MapiFileFlags: u64 {
+	pub struct MapiFileFlags: ULong {
 		const OLE 		= 0x00000001;
 		const OLE_STATIC 	= 0x00000002;
 	}
@@ -9,20 +11,22 @@ bitflags! {
 
 bitflags! {
 	#[repr(C)]
-	pub struct MapiMessageFlags: u64 {
+	pub struct MapiMessageFlags: ULong {
 		const UNREAD 		= 0x00000001;
 		const RECEIPT_REQUESTED = 0x00000002;
 		const SENT 		= 0x00000004;
 	}	
 }
 
-#[repr(u64)]
+// ULONG
+#[repr(u32)]
 pub enum MessageCodePage {
 	Ansi = 0,
 	Utf8 = 65001,
 }
 
-#[repr(u64)]
+// ULONG
+#[repr(u32)]
 pub enum MapiRecipClass {
 	Orig 	= 0,
 	To 	= 1,
@@ -30,7 +34,8 @@ pub enum MapiRecipClass {
 	Bcc 	= 3,
 }
 
-#[repr(u64)]
+// ULONG
+#[repr(u32)]
 pub enum MapiStatusCode {
 	Success 			= 0,
 	UserAbort 			= 1,
@@ -65,7 +70,7 @@ pub enum MapiStatusCode {
 bitflags! {
 	/// MAPILogon() flags
 	#[repr(C)]
-	pub struct MapiLogonFlags: u64 {
+	pub struct MapiLogonFlags: ULong {
 		/// display logon UI
 		const LOGON_UI 			= 0x00000001;
 		/// prompt for pw only
@@ -83,7 +88,7 @@ bitflags! {
 bitflags! {
 	/// MAPISendMail() flags
 	#[repr(C)]
-	pub struct MapiSendMailFlags: u64 {
+	pub struct MapiSendMailFlags: ULong {
 		const LOGON_UI			= MapiLogonFlags::LOGON_UI.bits();
 		const NEW_SESSION		= MapiLogonFlags::NEW_SESSION.bits();
 		/// display a send note UI
@@ -96,7 +101,7 @@ bitflags! {
 bitflags! {
 	/// MAPIFindNext() flags
 	#[repr(C)]
-	pub struct MapiFindNextFlags: u64 {
+	pub struct MapiFindNextFlags: ULong {
 		/// only unread messages
 		const UNREAD_ONLY 		= 0x00000020; 
 		/// use date order
@@ -110,7 +115,7 @@ bitflags! {
 bitflags! {
 	/// MAPIReadMail() flags
 	#[repr(C)]
-	pub struct MapiReadMailFlags: u64 {
+	pub struct MapiReadMailFlags: ULong {
 		/// do not mark as read
 		const PEEK 			= 0x00000080;
 		/// header + body, no files
@@ -126,7 +131,7 @@ bitflags! {
 bitflags! {
 	/// MAPISaveMail() flags
 	#[repr(C)]
-	pub struct MapiSaveMailFlags: u64 {
+	pub struct MapiSaveMailFlags: ULong {
 		const LOGON_UI		= MapiLogonFlags::LOGON_UI.bits();
 		const NEW_SESSION	= MapiLogonFlags::NEW_SESSION.bits();
 		const LONG_MSGID	= MapiFindNextFlags::LONG_MSGID.bits();
@@ -137,7 +142,7 @@ bitflags! {
 bitflags! {
 	/// MAPIAddress() flags
 	#[repr(C)]
-	pub struct MapiAddressFlags: u64 {
+	pub struct MapiAddressFlags: ULong {
 		const LOGON_UI		= MapiLogonFlags::LOGON_UI.bits();
 		const NEW_SESSION	= MapiLogonFlags::NEW_SESSION.bits();
 	}
@@ -147,7 +152,7 @@ bitflags! {
 bitflags! {
 	/// MAPIDetails() flags 
 	#[repr(C)]
-	pub struct MapiDetailsFlags: u64 {
+	pub struct MapiDetailsFlags: ULong {
 		const LOGON_UI		= MapiLogonFlags::LOGON_UI.bits();
 		const NEW_SESSION	= MapiLogonFlags::NEW_SESSION.bits();
 		/// don't allow mods of AB entries
@@ -158,7 +163,7 @@ bitflags! {
 bitflags! {
 	/// MAPIResolveName() flags
 	#[repr(C)]
-	pub struct MapiResolveNameFlags: u64 {
+	pub struct MapiResolveNameFlags: ULong {
 		const LOGON_UI  		= MapiLogonFlags::LOGON_UI.bits();
 		const NEW_SESSION 		= MapiLogonFlags::NEW_SESSION.bits();
 		const DIALOG			= MapiSendMailFlags::DIALOG.bits();

@@ -4,7 +4,10 @@
 extern crate bitflags;
 extern crate directories;
 extern crate winreg;
+extern crate urlencoding;
 
+// type aliases to centrally define C <-> Rust type conversions
+mod types;
 // the main data structures from MAPI.h and their safe counterparts
 mod structs;
 // flag & enum definitions from MAPI.h
