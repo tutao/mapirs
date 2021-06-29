@@ -75,7 +75,6 @@ pub extern "C" fn MAPISendMail(
 	message: *const RawMapiMessage,		// lpMapiMessage lpMessage
 	flags: MapiSendMailFlags,		// FLAGS flFlags
 	reserved: ULong,					// ULONG reserved mb 0
-	
 ) -> MapiStatusCode {
 	if let Ok(msg) = Message::try_from(message) {
 		send_mail(&msg);

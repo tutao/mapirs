@@ -1,3 +1,4 @@
+#[cfg(target_os = "windows")]
 use winreg::{
 	enums::*,
 	RegKey,
@@ -18,6 +19,7 @@ use std::convert::From;
 /// access the registry to try and get
 /// an OsString containing the absolute path to 
 /// the tutanota desktop executable.
+#[cfg(target_os = "windows")]
 pub fn client_path() -> io::Result<OsString> {
 	let subkey_path = "SOFTWARE\\450699d2-1c81-5ee5-aec6-08dddb7af9d7";
 	let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -36,6 +38,11 @@ pub fn client_path() -> io::Result<OsString> {
 	let mut path_buf = PathBuf::from(path_string);
 	path_buf.push("Tutanota Desktop.exe");
 	Ok(path_buf.into())
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn client_path() -> io::Result<OsString> {
+	Ok(OsString::new())
 }
 
 /// try to get a file handle to 

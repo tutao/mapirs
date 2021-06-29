@@ -3,6 +3,9 @@ use std::convert::From;
 use std::convert::Into;
 use std::ffi::CStr;
 use std::fmt::Debug;
+use std::path::{Path, PathBuf};
+use std::fs;
+use std::io;
 use urlencoding::encode;
 
 use crate::types::*;
@@ -96,8 +99,10 @@ pub struct RawMapiFileDesc {
 pub struct FileDescriptor {
 	flags: MapiFileFlags,
 	position: ULong,
-	path_name: String,
-	file_name: Option<String>,
+	/// absolute path to attachment
+	path_name: PathBuf,
+	/// file name to use for the attachment (if different from the name in the path)
+	file_name: Option<PathBuf>,
 	file_type: Option<FileTagExtension>,
 }
 
@@ -107,8 +112,11 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
 	    FileDescriptor {
 			flags: raw.flags,
 			position: raw.position,
-			path_name: maybe_string_from_raw_ptr(raw.path_name).unwrap_or("MISSING_PATH".to_owned()),
-			file_name: maybe_string_from_raw_ptr(raw.file_name),
+			path_name: maybe_string_from_raw_ptr(raw.path_name)
+				.map(|s| PathBuf::from(s))
+				.unwrap_or(PathBuf::from("INVALID_PATH")),
+			file_name: maybe_string_from_raw_ptr(raw.file_name)
+				.map(|s| PathBuf::from(s)),
 			file_type: file_type_result.ok(),
 		}
   	}
@@ -215,6 +223,29 @@ impl TryFrom<*const RawMapiMessage> for Message {
 }
 
 impl Message {
+
+	/// FileDescriptors may have a path and a separate file name
+	/// to make it easier, copy the attachment to the file name
+	/// next to the path.
+	/// don't do anything if file name is the same as the path pointed to
+	/// or if the attachment file descriptor doesn't have a separate file
+	/// name.
+	pub fn ensure_attachments(&self) -> io::Result<()> {
+		for file_desc in &self.files {
+			let maybe_path = swap_filename(&file_desc.path_name, &file_desc.file_name);
+			let new_path = if let Some(np) = maybe_path {
+				np
+			} else {
+				continue;
+			};
+			fs::copy(
+				&file_desc.path_name,
+				&new_path,
+			)?;
+		}
+		Ok(())
+	}
+
 	pub fn make_mailto_link(&self) -> String {
 		let to = self.recips.iter()
 			.nth(1)
@@ -231,17 +262,77 @@ impl Message {
 		let body = self.note_text.as_ref()
 			.map(|s| s.clone())
 			.unwrap_or("".to_owned());
+		let attachments = self.files.iter()
+			.map(|fd| swap_filename(&fd.path_name, &fd.file_name).unwrap_or(fd.path_name.clone()));
 			
-		format!("mailto:{}?cc={}&bcc={}&subject={}&body={}", 
+		format!("mailto:{}?cc={}&subject={}&body={}", 
 			to.unwrap(),
 			cc,
-			"".to_owned(), 
 			encode(&subject), 
 			encode(&body)
 		)
 	}
+}
 
-	pub fn make_attachment_arg(&self) -> String {
-		"NOPE".to_owned()
+
+/// get a path to a file in the same directory as file_path but named file_name
+/// see tests for examples
+fn swap_filename(file_path: &PathBuf, file_name: &Option<PathBuf>) -> Option<PathBuf> {
+	// check if the file name is present and get its last component
+	let file_name = if let Some(nm) = file_name.as_ref().map(|pb| pb.file_name()).flatten() {
+		nm
+	} else {
+		return None;
+	};
+
+	// get the last path component (could be a dir, no way to tell)
+	let path_file_name = if let Some(nm) = file_path.file_name() {
+		nm
+	} else {
+		return None;
+	};
+
+	// check that the path is not the root
+	let dir_path = if let Some(dp) = file_path.parent() {
+		dp
+	} else {
+		return None;
+	}; 
+	
+	if path_file_name == file_name {
+		return None;
+	}
+
+	Some(dir_path.join(file_name))
+}
+
+#[cfg(test)]
+mod tests {
+	use std::path::PathBuf;
+	use crate::structs::*;
+	
+	#[test]
+	fn swap_filename_works() {
+		let fpath1 = PathBuf::from("/home/u/text.txt");
+		let fpath2 = PathBuf::from("/");
+		let fpath3 = PathBuf::from("/home/no/");
+		let fname1 = Some(PathBuf::from("image.jpg"));
+		let fname2 = None;
+		let fname3 = Some(PathBuf::from("hello/image.jpg"));
+		// normal operation
+		let res1 = swap_filename(&fpath1, &fname1);
+		assert_eq!(res1.unwrap(), PathBuf::from("/home/u/image.jpg"));
+		// if there's no file name, we don't return anything
+		let res2 = swap_filename(&fpath1, &fname2);
+		assert!(res2.is_none());
+		// root dir doesn't have a parent
+		let res3 = swap_filename(&fpath2, &fname1);
+		assert!(res3.is_none());
+		// if file path is a dir, we still want to do our thing.
+		let res4 = swap_filename(&fpath3, &fname1);
+		assert_eq!(res4.unwrap(), PathBuf::from("/home/image.jpg"));
+		// get only the last component (file name) of the second arg
+		let res5 = swap_filename(&fpath1, &fname3);
+		assert_eq!(res5.unwrap(), PathBuf::from("/home/u/image.jpg"));
 	}
 }

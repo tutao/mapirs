@@ -3,8 +3,9 @@
 #[macro_use]
 extern crate bitflags;
 extern crate directories;
-extern crate winreg;
 extern crate urlencoding;
+#[cfg(windows)]
+extern crate winreg;
 
 // type aliases to centrally define C <-> Rust type conversions
 mod types;
