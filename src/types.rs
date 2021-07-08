@@ -1,4 +1,3 @@
-
 pub type ULong = u32;
 pub type ULongPtr = *const u32;
 pub type LpByte = *const u8;

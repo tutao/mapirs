@@ -20,16 +20,6 @@ mod environment;
 // the external API surface exposed to windows
 mod ffi;
 pub use crate::ffi::{
-	MAPILogon,
-	MAPILogoff,
-	MAPISendMail,
-	MAPISendDocuments,
-	MAPIFindNext,
-	MAPIReadMail,
-	MAPISaveMail,
-	MAPIDeleteMail,
-	MAPIFreeBuffer,
-	MAPIAddress,
-	MAPIDetails,
-	MAPIResolveName,
+    MAPIAddress, MAPIDeleteMail, MAPIDetails, MAPIFindNext, MAPIFreeBuffer, MAPILogoff, MAPILogon,
+    MAPIReadMail, MAPIResolveName, MAPISaveMail, MAPISendDocuments, MAPISendMail,
 };
