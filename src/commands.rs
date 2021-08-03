@@ -1,10 +1,10 @@
-use crate::environment::client_path;
-use crate::structs::Message;
-
-use std::process::Command;
 // NOTE: enables creation_flags on the command builder, only works on windows
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+use std::process::Command;
+
+use crate::environment::client_path;
+use crate::structs::Message;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const DETACHED_PROCESS: u32 = 0x00000008;

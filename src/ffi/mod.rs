@@ -1,17 +1,16 @@
-use crate::structs::{Message, RawMapiFileDesc, RawMapiMessage, RawMapiRecipDesc};
-use crate::types::*;
+use std::convert::TryFrom;
+use std::io::Write;
 
+use crate::commands::send_mail;
+use crate::environment::{current_time_millis, log_file};
 use crate::flags::{
     MapiAddressFlags, MapiDetailsFlags, MapiFindNextFlags, MapiLogonFlags, MapiReadMailFlags,
     MapiResolveNameFlags, MapiSaveMailFlags, MapiSendMailFlags, MapiStatusCode,
 };
+use crate::structs::{Message, RawMapiMessage, RawMapiRecipDesc};
+use crate::types::*;
 
-use crate::environment::{client_path, current_time_millis, log_file};
-
-use crate::commands::send_mail;
-
-use std::convert::TryFrom;
-use std::io::Write;
+pub mod conversion;
 
 fn log_to_file(caller: &str, stuff: &str) -> () {
     let written = if let Ok(mut lf) = log_file() {

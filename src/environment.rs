@@ -1,14 +1,13 @@
-use directories::BaseDirs;
+use std::ffi::OsString;
 use std::fs;
 use std::fs::{File, OpenOptions};
-#[cfg(target_os = "windows")]
-use winreg::{enums::*, RegKey};
-
-use std::convert::From;
-use std::ffi::OsString;
 use std::io;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use directories::BaseDirs;
+#[cfg(target_os = "windows")]
+use winreg::{enums::*, RegKey};
 
 /// access the registry to try and get
 /// an OsString containing the absolute path to
@@ -68,4 +67,81 @@ pub fn current_time_millis() -> u128 {
         .duration_since(UNIX_EPOCH)
         .expect("time went backwards");
     duration.as_millis()
+}
+
+/// get a path to a file in the same directory as file_path but named file_name
+///
+/// TODO: get this example to run as a doctest on linux?
+/// TODO: it's part of the test mod below
+/// ```
+/// let fpath = PathBuf::from("/home/u/text.txt");
+/// let fname = Some(PathBuf::from("image.jpg"));
+/// let res1 = swap_filename(&fpath, &fname);
+/// assert_eq!(res1.unwrap(), PathBuf::from("/home/u/image.jpg"));
+/// ```
+///
+/// returns None if file_name does not contain a file name or file_path is the root dir
+pub fn swap_filename(file_path: &PathBuf, file_name: &Option<PathBuf>) -> Option<PathBuf> {
+    // check if the file name is present and get its last component
+    let file_name = if let Some(nm) = file_name.as_ref().map(|pb| pb.file_name()).flatten() {
+        nm
+    } else {
+        return None;
+    };
+
+    // get the last path component (could be a dir, no way to tell)
+    let path_file_name = if let Some(nm) = file_path.file_name() {
+        nm
+    } else {
+        return None;
+    };
+
+    // check that the path is not the root
+    let dir_path = if let Some(dp) = file_path.parent() {
+        dp
+    } else {
+        return None;
+    };
+
+    if path_file_name == file_name {
+        return Some(file_path.clone());
+    }
+
+    Some(dir_path.join(file_name))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::environment::swap_filename;
+
+    #[test]
+    fn swap_filename_works() {
+        let fpath1 = PathBuf::from("/home/u/text.txt");
+        let fpath2 = PathBuf::from("/");
+        let fpath3 = PathBuf::from("/home/no/");
+        let fname1 = Some(PathBuf::from("image.jpg"));
+        let fname2 = None;
+        let fname3 = Some(PathBuf::from("hello/image.jpg"));
+        let fname4 = Some(PathBuf::from("text.txt"));
+        // normal operation
+        let res1 = swap_filename(&fpath1, &fname1);
+        assert_eq!(res1.unwrap(), PathBuf::from("/home/u/image.jpg"));
+        // if there's no file name, we don't return anything
+        let res2 = swap_filename(&fpath1, &fname2);
+        assert!(res2.is_none());
+        // root dir doesn't have a parent
+        let res3 = swap_filename(&fpath2, &fname1);
+        assert!(res3.is_none());
+        // if file path is a dir, we still want to do our thing.
+        let res4 = swap_filename(&fpath3, &fname1);
+        assert_eq!(res4.unwrap(), PathBuf::from("/home/image.jpg"));
+        // get only the last component (file name) of the second arg
+        let res5 = swap_filename(&fpath1, &fname3);
+        assert_eq!(res5.unwrap(), PathBuf::from("/home/u/image.jpg"));
+        // do nothing if the result is equal to file_path
+        let res6 = swap_filename(&fpath1, &fname4);
+        assert_eq!(res6.unwrap(), fpath1);
+    }
 }
