@@ -50,3 +50,16 @@ impl From<&RawMapiRecipDesc> for RecipientDescriptor {
         }
     }
 }
+
+impl RecipientDescriptor {
+
+    #[cfg(test)]
+    pub fn new(address: &str) -> Self {
+        return Self{
+            recip_class: 0,
+            name: "".to_owned(),
+            address: Some(address.to_owned()),
+            entry_id: vec![0,0,0,0]
+        }
+    }
+}

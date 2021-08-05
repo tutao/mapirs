@@ -103,7 +103,7 @@ impl Message {
         let to = self
             .recips
             .iter()
-            .nth(1)
+            .nth(0)
             .map(|r| r.address.clone())
             .unwrap_or(Some("".to_owned()))
             .unwrap();
@@ -140,11 +140,11 @@ impl Message {
         }
 
         if let Some(subject_text) = subject {
-            url_parts.push(format!("subject={}", subject_text));
+            url_parts.push(format!("subject={}", encode(&subject_text)));
         }
 
         if let Some(body_text) = body {
-            url_parts.push(format!("body={}", body_text));
+            url_parts.push(format!("body={}", encode(&body_text)));
         }
 
         for attachment in attachments {
@@ -154,5 +154,67 @@ impl Message {
         }
 
         format!("mailto:{}?{}", to, url_parts.join("&"))
+    }
+
+    #[cfg(test)]
+    pub fn new(to: Vec<&str>, body: Option<&str>, subject: Option<&str>, attach: Vec<FileDescriptor>) -> Self {
+        return Self {
+            subject: subject.map(|s| s.to_owned()),
+            note_text: body.map(|b| b.to_owned()),
+            message_type: None,
+            date_received: None,
+            conversation_id: None,
+            flags: MapiMessageFlags::empty(),
+            originator: None,
+            recips: to.into_iter().map(|t| RecipientDescriptor::new(t)).collect(),
+            files: attach
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::structs::{Message, FileDescriptor};
+
+    #[test]
+    fn message_make_mailto_works() {
+        assert_eq!(Message::new(
+            vec![],
+            None,
+            None,
+            vec![]
+        ).make_mailto_link(), "mailto:?");
+
+        assert_eq!(Message::new(
+            vec!["a@b.de", "b@c.de", "d@g.de"],
+            None,
+            None,
+            vec![]
+        ).make_mailto_link(), "mailto:a@b.de?cc=b@c.de,d@g.de");
+
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            None,
+            None,
+            vec![
+                FileDescriptor::new("/some/path file.jpg", "file.txt".into())
+            ]
+        ).make_mailto_link(), "mailto:a@b.de?attach=%2Fsome%2Ffile.txt");
+
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            None,
+            None,
+            vec![
+                FileDescriptor::new("/some/path file.jpg", None)
+            ]
+        ).make_mailto_link(), "mailto:a@b.de?attach=%2Fsome%2Fpath%20file.jpg");
+
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            "börk & ? = / \\".into(),
+            "börk & ? \\ %20 ".into(),
+            vec![]
+        ).make_mailto_link(), "mailto:a@b.de?subject=b%C3%B6rk%20%26%20%3F%20%5C%20%2520%20&body=b%C3%B6rk%20%26%20%3F%20%3D%20%2F%20%5C");
     }
 }

@@ -81,3 +81,16 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
         }
     }
 }
+
+impl FileDescriptor  {
+    #[cfg(test)]
+    pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
+        return Self{
+            flags: MapiFileFlags::empty(),
+            position: 0,
+            path_name: PathBuf::from(file_path),
+            file_name: file_name.map(|fname| PathBuf::from(fname)),
+            file_type: None
+        }
+    }
+}
