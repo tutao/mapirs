@@ -72,7 +72,7 @@ pub fn current_time_millis() -> u128 {
 /// get a path to a file in the same directory as file_path but named file_name
 ///
 /// TODO: get this example to run as a doctest on linux?
-/// TODO: it's part of the test mod below
+/// TODO: for now, it's part of the test mod below
 /// ```
 /// let fpath = PathBuf::from("/home/u/text.txt");
 /// let fname = Some(PathBuf::from("image.jpg"));

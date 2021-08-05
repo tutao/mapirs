@@ -1,8 +1,7 @@
 use std::convert::TryFrom;
-use std::io::Write;
 
+use crate::commands;
 use crate::commands::send_mail;
-use crate::environment::{current_time_millis, log_file};
 use crate::flags::{
     MapiAddressFlags, MapiDetailsFlags, MapiFindNextFlags, MapiLogonFlags, MapiReadMailFlags,
     MapiResolveNameFlags, MapiSaveMailFlags, MapiSendMailFlags, MapiStatusCode,
@@ -11,18 +10,6 @@ use crate::structs::{Message, RawMapiMessage, RawMapiRecipDesc};
 use crate::types::*;
 
 pub mod conversion;
-
-fn log_to_file(caller: &str, stuff: &str) -> () {
-    let written = if let Ok(mut lf) = log_file() {
-        writeln!(lf, "{} | {}: {}", current_time_millis(), caller, stuff)
-    } else {
-        eprintln!("Couldn't open file");
-        Ok(())
-    };
-    if let Err(_) = written {
-        eprintln!("Couldn't write to file");
-    }
-}
 
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapilogon
 #[no_mangle]
@@ -34,7 +21,7 @@ pub extern "C" fn MAPILogon(
     reserved: ULong,       // ULONG ulReserved (mb 0)
     session: LpVoid,       // TODO: LPLHANDLE lplhSession??
 ) -> MapiStatusCode {
-    log_to_file("mapilogon", "");
+    commands::log_to_file("mapilogon", "");
     MapiStatusCode::NotSupported
 }
 
@@ -46,7 +33,7 @@ pub extern "C" fn MAPILogoff(
     flags: ULong,       // FLAGS flFlags (reserved, must be zero)
     reserved: ULong,    // ULONG ulReserved
 ) -> MapiStatusCode {
-    log_to_file("mapilogoff", "");
+    commands::log_to_file("mapilogoff", "");
     MapiStatusCode::NotSupported
 }
 
@@ -62,7 +49,7 @@ pub extern "C" fn MAPISendMail(
     if let Ok(msg) = Message::try_from(message) {
         send_mail(&msg);
         let text = format!("message: {:?}", msg);
-        log_to_file("mapisendmail", &text);
+        commands::log_to_file("mapisendmail", &text);
         MapiStatusCode::Success
     } else {
         MapiStatusCode::Failure
@@ -78,7 +65,7 @@ pub extern "C" fn MAPISendDocuments(
     file_names: InLpStr, // __in LPSTR lpszFileNames
     reserved: ULong,
 ) -> MapiStatusCode {
-    log_to_file("mapisenddocuments", "");
+    commands::log_to_file("mapisenddocuments", "");
     MapiStatusCode::NotSupported
 }
 
@@ -93,7 +80,7 @@ pub extern "C" fn MAPIFindNext(
     reserved: ULong,
     message_id: LpStr, // LPSTR lpszMessageID
 ) -> MapiStatusCode {
-    log_to_file("mapifindnext", "");
+    commands::log_to_file("mapifindnext", "");
     MapiStatusCode::NotSupported
 }
 
@@ -106,7 +93,7 @@ pub extern "C" fn MAPIReadMail(
     reserved: ULong,
     message: *const RawMapiMessage, // lpMapiMessage FAR *lppMessage
 ) -> MapiStatusCode {
-    log_to_file("mapireadmail", "");
+    commands::log_to_file("mapireadmail", "");
     MapiStatusCode::NotSupported
 }
 
@@ -119,7 +106,7 @@ pub extern "C" fn MAPISaveMail(
     reserved: ULong,
     message_id: InLpStr, // __in LPSTR lpszMessageID
 ) -> MapiStatusCode {
-    log_to_file("mapisavemail", "");
+    commands::log_to_file("mapisavemail", "");
     MapiStatusCode::NotSupported
 }
 
@@ -131,13 +118,13 @@ pub extern "C" fn MAPIDeleteMail(
     flags: ULong,        // reserved, must be zero
     reserved: ULong,
 ) -> MapiStatusCode {
-    log_to_file("mapideletemail", "");
+    commands::log_to_file("mapideletemail", "");
     MapiStatusCode::NotSupported
 }
 
 #[no_mangle]
 pub extern "C" fn MAPIFreeBuffer(pv: LpVoid) -> MapiStatusCode {
-    log_to_file("mapifreebuffer", "");
+    commands::log_to_file("mapifreebuffer", "");
     MapiStatusCode::NotSupported
 }
 
@@ -155,7 +142,7 @@ pub extern "C" fn MAPIAddress(
     n_new_recipients: ULongPtr,              // LPULONG lpnNewRecips
     new_recipients: *const RawMapiRecipDesc, // lpMapiRecipDesc FAR *lppNewRecips
 ) -> MapiStatusCode {
-    log_to_file("mapiaddress", "");
+    commands::log_to_file("mapiaddress", "");
     MapiStatusCode::NotSupported
 }
 
@@ -167,7 +154,7 @@ pub extern "C" fn MAPIDetails(
     flags: MapiDetailsFlags,
     reserved: ULong,
 ) -> MapiStatusCode {
-    log_to_file("mapidetails", "");
+    commands::log_to_file("mapidetails", "");
     MapiStatusCode::NotSupported
 }
 
@@ -180,6 +167,6 @@ pub extern "C" fn MAPIResolveName(
     reserved: ULong,
     recipient: *const RawMapiRecipDesc, // lpMapiRecipDesc FAR *lppRecip
 ) -> MapiStatusCode {
-    log_to_file("mapiresolvename", "");
+    commands::log_to_file("mapiresolvename", "");
     MapiStatusCode::NotSupported
 }

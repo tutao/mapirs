@@ -1,8 +1,14 @@
 ### Build
 
-crosscompile on linux:
+debug crosscompile on linux:
 
-cargo build --target x86_64-pc-windows-gnu
+`cargo build --target x86_64-pc-windows-gnu`
+
+release crosscompile on linux:
+
+`cargo build --target x86_64-pc-windows-gnu --release`
+
+the dll will be placed in ./target/x86_64-pc-windows-gnu/{release,debug}/mapirs.dll
 
 ### Notes
 

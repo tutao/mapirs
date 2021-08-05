@@ -98,40 +98,61 @@ impl Message {
     }
 
     pub fn make_mailto_link(&self) -> String {
+        // MAPI message only has a recipient array, so we use the first one for the
+        // address and put the rest (comma-separated) into cc.
         let to = self
             .recips
             .iter()
             .nth(1)
             .map(|r| r.address.clone())
-            .unwrap_or(Some("".to_owned()));
+            .unwrap_or(Some("".to_owned()))
+            .unwrap();
         let cc = self
             .recips
             .iter()
             .skip(1)
             .filter_map(|r| r.address.clone())
-            .collect::<Vec<String>>()
-            .join(",");
+            .collect::<Vec<String>>();
         let subject = self
             .subject
             .as_ref()
-            .map(|s| s.clone())
-            .unwrap_or("".to_owned());
+            .map(|s| s.clone());
         let body = self
             .note_text
             .as_ref()
-            .map(|s| s.clone())
-            .unwrap_or("".to_owned());
+            .map(|s| s.clone());
+
+        // takes the file descriptors and make file urls from them
+        let fd_mapper = |fd: &FileDescriptor| environment::swap_filename(
+            &fd.path_name,
+            &fd.file_name,
+        ).unwrap_or(fd.path_name.clone());
+
         let attachments = self
             .files
             .iter()
-            .map(|fd| environment::swap_filename(&fd.path_name, &fd.file_name).unwrap_or(fd.path_name.clone()));
+            .map(fd_mapper);
 
-        format!(
-            "mailto:{}?cc={}&subject={}&body={}",
-            to.unwrap(),
-            cc,
-            encode(&subject),
-            encode(&body)
-        )
+        let mut url_parts = vec![];
+
+        if cc.len() > 0 {
+            url_parts.push(format!("cc={}", cc.join(",")));
+        }
+
+        if let Some(subject_text) = subject {
+            url_parts.push(format!("subject={}", subject_text));
+        }
+
+        if let Some(body_text) = body {
+            url_parts.push(format!("body={}", body_text));
+        }
+
+        for attachment in attachments {
+            if let Some(fp) = attachment.to_str() {
+                url_parts.push(format!("attach={}", encode(fp)));
+            }
+        }
+
+        format!("mailto:{}?{}", to, url_parts.join("&"))
     }
 }
