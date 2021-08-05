@@ -14,6 +14,7 @@ use winreg::{enums::*, RegKey};
 /// the tutanota desktop executable.
 #[cfg(target_os = "windows")]
 pub fn client_path() -> io::Result<OsString> {
+    // the GUID is the AppID of Tutanota Desktop as assigned by electron-builder
     let subkey_path = "SOFTWARE\\450699d2-1c81-5ee5-aec6-08dddb7af9d7";
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     // first, try to find executable for client installed for current user
