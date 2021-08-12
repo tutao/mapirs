@@ -52,6 +52,7 @@ pub extern "C" fn MAPISendMail(
         commands::log_to_file("mapisendmail", &text);
         MapiStatusCode::Success
     } else {
+        commands::log_to_file("mapisendmail", "could not parse arguments.");
         MapiStatusCode::Failure
     }
 }

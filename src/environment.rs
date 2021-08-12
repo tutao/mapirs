@@ -2,7 +2,9 @@ use std::ffi::OsString;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::path::PathBuf;
+use std::path::{
+    Path, PathBuf,
+};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use directories::BaseDirs;
@@ -50,15 +52,37 @@ pub fn log_file() -> io::Result<File> {
     let data_dir = base_dirs.data_dir();
     let logpath = data_dir.join("tutanota-desktop").join("logs");
     let logfile = logpath.join("mapi.log");
+    let logfile_old = logpath.join("mapi_old.log");
 
     // this may fail if the path is not writable
     fs::create_dir_all(logpath)?;
 
+    // log rotation. if the log was last modified more than a day ago,
+    // move it and start a new one.
+    if !modified_within_day(&logfile) {
+        if let Err(e) = fs::rename(&logfile, &logfile_old) {
+            eprintln!("could not rotate logs.");
+        };
+    }
+
     OpenOptions::new()
         .write(true)
         .append(true)
-        .open(logfile.clone()) // PathBuf is not copy
-        .or_else(|_| File::create(logfile))
+        .open(&logfile) // PathBuf is not copy
+        .or_else(|_| File::create(&logfile))
+}
+
+/// check if the file at a path was modified less than a day ago
+/// ignores pretty much any error, returning false
+fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
+    if let Some(v) = fs::metadata(filepath).ok()
+        .map(|md| md.modified().ok()).flatten()
+        .map(|modified| SystemTime::now().duration_since(modified).ok()).flatten()
+        .map(|dur| dur.as_secs() < 60 * 60 * 24) {
+        v
+    } else {
+        false
+    }
 }
 
 /// get the current system time in
