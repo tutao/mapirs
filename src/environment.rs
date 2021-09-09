@@ -13,27 +13,24 @@ use winreg::{enums::*, RegKey};
 
 /// access the registry to try and get
 /// an OsString containing the absolute path to
-/// the tutanota desktop executable.
+/// the tutanota desktop executable that registered the dll
+/// as the MAPI handler.
 #[cfg(target_os = "windows")]
 pub fn client_path() -> io::Result<OsString> {
+    // it would be possible to get the path via hkcu/software/{tutanota GUID}, but that GUID is
+    // different for release, test and snapshot.
     // the GUID is the AppID of Tutanota Desktop as assigned by electron-builder
-    let subkey_path = "SOFTWARE\\450699d2-1c81-5ee5-aec6-08dddb7af9d7";
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    // first, try to find executable for client installed for current user
-    let tutanota_key = if let Ok(hkcu_subkey) = hkcu.open_subkey(subkey_path) {
-        hkcu_subkey
-    } else {
-        // if that didn't work, try to get the globally installed executable.
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        // if this fails, the client is not installed or the registry is borked.
-        let hklm_subkey = hklm.open_subkey(subkey_path)?;
-        hklm_subkey
-    };
+    // let subkey_path_release = "SOFTWARE\\450699d2-1c81-5ee5-aec6-08dddb7af9d7"
+
+    // the client saves the path to the executable to hklm/software/Clients/Mail/tutanota/EXEPath
+    // that key must be there, otherwise windows couldn't have called this DLL because
+    // the path to it is next to it under DLLPath.
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    // if this fails, the client is not installed correctly or the registry is borked.
+    let tutanota_key = hklm.open_subkey("SOFTWARE\\Clients\\Mail\\tutanota")?;
     // if this fails, the registry is borked.
-    let path_string: String = tutanota_key.get_value("InstallLocation")?;
-    let mut path_buf = PathBuf::from(path_string);
-    path_buf.push("Tutanota Desktop.exe");
-    Ok(path_buf.into())
+    tutanota_key.get_value("EXEPath")
 }
 
 #[cfg(not(target_os = "windows"))]

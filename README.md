@@ -1,10 +1,10 @@
 ### Build
 
-debug crosscompile on linux (**requires gcc-mingw**):
+debug crosscompile on linux (**requires package gcc-mingw-w64**):
 
 `cargo build --target x86_64-pc-windows-gnu`
 
-release crosscompile on linux (**requires gcc-mingw**):
+release crosscompile on linux (**requires package gcc-mingw-w64**):
 
 `cargo build --target x86_64-pc-windows-gnu --release`
 
