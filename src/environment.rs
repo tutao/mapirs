@@ -7,16 +7,11 @@ use std::path::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use directories::BaseDirs;
 #[cfg(target_os = "windows")]
 use winreg::{enums::*, RegKey};
 
-/// access the registry to try and get
-/// an OsString containing the absolute path to
-/// the tutanota desktop executable that registered the dll
-/// as the MAPI handler.
 #[cfg(target_os = "windows")]
-pub fn client_path() -> io::Result<OsString> {
+fn reg_key() -> io::Result<RegKey> {
     // it would be possible to get the path via hkcu/software/{tutanota GUID}, but that GUID is
     // different for release, test and snapshot.
     // the GUID is the AppID of Tutanota Desktop as assigned by electron-builder
@@ -28,7 +23,16 @@ pub fn client_path() -> io::Result<OsString> {
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     // if this fails, the client is not installed correctly or the registry is borked.
-    let tutanota_key = hklm.open_subkey("SOFTWARE\\Clients\\Mail\\tutanota")?;
+    hklm.open_subkey("SOFTWARE\\Clients\\Mail\\tutanota")
+}
+
+/// access the registry to try and get
+/// an OsString containing the absolute path to
+/// the tutanota desktop executable that registered the dll
+/// as the MAPI handler.
+#[cfg(target_os = "windows")]
+pub fn client_path() -> io::Result<OsString> {
+    let tutanota_key = reg_key()?;
     // if this fails, the registry is borked.
     tutanota_key.get_value("EXEPath")
 }
@@ -38,18 +42,21 @@ pub fn client_path() -> io::Result<OsString> {
     Ok(OsString::new())
 }
 
+#[cfg(target_os = "windows")]
+fn log_path() -> io::Result<OsString> {
+    let tutanota_key = reg_key()?;
+    tutanota_key.get_value("LOGPath")
+}
+
 /// try to get a file handle to
 /// a log file inside the tutanota
 /// desktop user data directory.
 pub fn log_file() -> io::Result<File> {
-    let base_dirs = BaseDirs::new().ok_or(io::Error::new(
-        io::ErrorKind::Other,
-        "Could not access BaseDirs",
-    ))?;
-    let data_dir = base_dirs.data_dir();
-    let logpath = data_dir.join("tutanota-desktop").join("logs");
-    let logfile = logpath.join("mapi.log");
-    let logfile_old = logpath.join("mapi_old.log");
+    let logpath: PathBuf = log_path()?.into();
+    let mut logfile = logpath.clone();
+    let mut logfile_old = logpath.clone();
+    logfile.push("mapi.log");
+    logfile_old.push("mapi_old.log");
 
     // this may fail if the path is not writable
     fs::create_dir_all(logpath)?;

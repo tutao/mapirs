@@ -11,21 +11,21 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 const DETACHED_PROCESS: u32 = 0x00000008;
 
 #[cfg(target_os = "windows")]
-pub fn send_mail(msg: &Message) -> () {
-    let exe = client_path().unwrap();
-    if let Err(e) = msg.ensure_attachments() {
-        log_to_file("send_mail", &format!("could not ensure attachment: {}", e));
-        return;
-    }
+pub fn send_mail(msg: &Message) -> std::io::Result<()> {
+    let exe = client_path()?;
+    msg.ensure_attachments()?;
+
     Command::new(&exe)
         .args(&[msg.make_mailto_link()])
         .creation_flags(DETACHED_PROCESS)
-        .spawn()
-        .unwrap();
+        .spawn()?;
+    log_to_file("send_mail", "spawned tutanota client");
+    Ok(())
 }
 
 #[cfg(not(target_os = "windows"))]
-pub fn send_mail(_msg: &Message) -> () {}
+/// this is never compiled or executed because the dll targets windows
+pub fn send_mail(_msg: &Message) -> std::io::Result<()> { Ok(()) }
 
 pub fn log_to_file(caller: &str, stuff: &str) -> () {
     let written = if let Ok(mut lf) = log_file() {

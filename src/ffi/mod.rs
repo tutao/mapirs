@@ -47,10 +47,20 @@ pub extern "C" fn MAPISendMail(
     reserved: ULong,                // ULONG reserved mb 0
 ) -> MapiStatusCode {
     if let Ok(msg) = Message::try_from(message) {
-        send_mail(&msg);
-        let text = format!("message: {:?}", msg);
-        commands::log_to_file("mapisendmail", &text);
-        MapiStatusCode::Success
+        commands::log_to_file("mapisendmail", "parsed message, sending...");
+        if let Err(e) = send_mail(&msg) {
+            commands::log_to_file(
+                "mapisendmail",
+                &format!("could not send mail: {:?}", e),
+            );
+            MapiStatusCode::Failure
+        } else {
+            commands::log_to_file(
+                "mapisendmail",
+                &format!("sent message: {:?}", msg),
+            );
+            MapiStatusCode::Success
+        }
     } else {
         commands::log_to_file("mapisendmail", "could not parse arguments.");
         MapiStatusCode::Failure
