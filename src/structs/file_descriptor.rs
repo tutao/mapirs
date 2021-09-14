@@ -82,7 +82,7 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
     }
 }
 
-impl FileDescriptor  {
+impl FileDescriptor {
     #[cfg(test)]
     pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
         return Self{

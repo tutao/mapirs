@@ -167,14 +167,14 @@ impl Message {
             flags: MapiMessageFlags::empty(),
             originator: None,
             recips: to.into_iter().map(|t| RecipientDescriptor::new(t)).collect(),
-            files: attach
-        }
+            files: attach,
+        };
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::structs::{Message, FileDescriptor};
+    use crate::structs::{FileDescriptor, Message};
 
     #[test]
     fn message_make_mailto_works() {
@@ -182,39 +182,59 @@ mod tests {
             vec![],
             None,
             None,
-            vec![]
+            vec![],
         ).make_mailto_link(), "mailto:?");
 
         assert_eq!(Message::new(
             vec!["a@b.de", "b@c.de", "d@g.de"],
             None,
             None,
-            vec![]
+            vec![],
         ).make_mailto_link(), "mailto:a@b.de?cc=b@c.de,d@g.de");
 
-        assert_eq!(Message::new(
-            vec!["a@b.de"],
-            None,
-            None,
-            vec![
-                FileDescriptor::new("/some/path file.jpg", "file.txt".into())
-            ]
-        ).make_mailto_link(), "mailto:a@b.de?attach=%2Fsome%2Ffile.txt");
+        let desc = if cfg!(target_os = "windows") {
+            FileDescriptor::new("C:\\some\\path file.jpg", "file.txt".into())
+        } else {
+            FileDescriptor::new("/some/path file.jpg", "file.txt".into())
+        };
+
+        let res = if cfg!(target_os = "windows") {
+            "mailto:a@b.de?attach=C%3A%5Csome%5Cfile.txt"
+        } else {
+            "mailto:a@b.de?attach=%2Fsome%2Ffile.txt"
+        };
 
         assert_eq!(Message::new(
             vec!["a@b.de"],
             None,
             None,
-            vec![
-                FileDescriptor::new("/some/path file.jpg", None)
-            ]
-        ).make_mailto_link(), "mailto:a@b.de?attach=%2Fsome%2Fpath%20file.jpg");
+            vec![desc],
+        ).make_mailto_link(), res);
+
+        let desc = if cfg!(target_os = "windows") {
+            FileDescriptor::new("C:\\some\\path file.jpg", None)
+        } else {
+            FileDescriptor::new("/some/path file.jpg", None)
+        };
+
+        let res = if cfg!(target_os = "windows") {
+            "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg"
+        } else {
+            "mailto:a@b.de?attach=%2Fsome%2Fpath%20file.jpg"
+        };
+
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            None,
+            None,
+            vec![desc],
+        ).make_mailto_link(), res);
 
         assert_eq!(Message::new(
             vec!["a@b.de"],
             "börk & ? = / \\".into(),
             "börk & ? \\ %20 ".into(),
-            vec![]
+            vec![],
         ).make_mailto_link(), "mailto:a@b.de?subject=b%C3%B6rk%20%26%20%3F%20%5C%20%2520%20&body=b%C3%B6rk%20%26%20%3F%20%3D%20%2F%20%5C");
     }
 }

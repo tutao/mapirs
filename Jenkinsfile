@@ -1,6 +1,9 @@
 pipeline {
 	environment {
-		VERSION = bat(returnStdout: true, script: $/git grep -hoPe "^version = .(\K\d+\.\d+\.\d+)" Cargo.toml /$)
+		VERSION = powershell(
+		    returnStdout: true,
+		    script: $/(Select-String -Pattern '^version = "(?<v>\d+.\d+.\d+)"' -AllMatches -Path Cargo.toml).Matches[0].Groups[1].value/$
+		).trim()
 	}
 
 	agent {
