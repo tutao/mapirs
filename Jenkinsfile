@@ -42,8 +42,7 @@ pipeline {
 
 				script {
 					def filePath = "build/app-android/tutanota-${VERSION}-release.apk"
-					def tag = "tutanota-android-release-${VERSION}"
-					def util = load "jenkins-lib/util.groovy"
+					def tag = "mapirs-release-${VERSION}"
 
 					sh "git tag ${tag}"
 					sh "git push --tags"
