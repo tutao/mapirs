@@ -1,8 +1,6 @@
 pipeline {
 	environment {
-		NODE_PATH="/opt/node-v16.3.0-linux-x64/bin"
-		VERSION = sh(returnStdout: true, script: "${NODE_PATH}/node -p -e \"require('./package.json').version\" | tr -d \"\n\"")
-		PATH="${env.NODE_PATH}:${env.PATH}"
+		VERSION = bat(returnStdout: true, script: $/git grep -hoPe "^version = .(\K\d+\.\d+\.\d+)" Cargo.toml /$)
 	}
 
 	agent {
@@ -19,15 +17,15 @@ pipeline {
 	stages {
 		stage('run tests') {
 			steps {
-			    bat "cargo test"
+			    powershell "cargo test"
 			}
 		}
 
 		stage('build the dll') {
 			steps {
 				echo "building mapirs v${VERSION}"
-				bat 'cargo build --release'
-				stash includes: "target/x86_64-pc-windows-gnu/release/mapirs.dll", name: 'dll'
+				powershell 'cargo build --release'
+				stash includes: "target/release/mapirs.dll", name: 'dll'
 			}
 		}
 
@@ -36,18 +34,19 @@ pipeline {
 				expression { params.PUBLISH }
 			}
 			steps {
-				sh 'npm ci'
-
 				unstash 'dll'
 
 				script {
-					def filePath = "build/app-android/tutanota-${VERSION}-release.apk"
+					def filePath = "target/release/mapirs.dll"
 					def tag = "mapirs-release-${VERSION}"
 
-					sh "git tag ${tag}"
-					sh "git push --tags"
+					powershell "git tag ${tag}"
+					powershell "git push --tags"
 
-					def checksum = sh(returnStdout: true, script: "sha256sum ${WORKSPACE}/${filePath}")
+					def checksum = powershell(
+					    returnStdout: true,
+					    script: "(Get-FileHash -Algorithm SHA256 ${WORKSPACE}/${filePath}).Hash.ToLower()"
+					)
 
 					withCredentials([string(credentialsId: 'github-access-token', variable: 'GITHUB_TOKEN')]) {
 						sh """node buildSrc/createGithubReleasePage.js --name '${VERSION} (Android)' \

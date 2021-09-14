@@ -43,6 +43,7 @@ pub fn client_path() -> io::Result<OsString> {
 }
 
 #[cfg(target_os = "windows")]
+#[cfg(not(test))]
 fn log_path() -> io::Result<OsString> {
     let tutanota_key = reg_key()?;
     tutanota_key.get_value("LOGPath")
