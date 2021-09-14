@@ -48,6 +48,11 @@ fn log_path() -> io::Result<OsString> {
     tutanota_key.get_value("LOGPath")
 }
 
+#[cfg(test)]
+fn log_path() -> io::Result<OsString> {
+    Ok(OsString::from("/some/weird/path"))
+}
+
 /// try to get a file handle to
 /// a log file inside the tutanota
 /// desktop user data directory.
