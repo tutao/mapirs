@@ -46,17 +46,13 @@ pipeline {
 			steps {
 				unstash 'dll'
                 pwsh '''
-                    $Env:GITHUB_TOKEN | Out-File cred.txt
                     $checksum = (Get-FileHash -Algorithm SHA256 -Path $Env:RELEASE_ASSET_PATH).Hash.ToLower()
                     $url = "https://api.github.com/repos/tutao/mapirs/releases"
-                    $user = "tutao-jenkins"
-                    $secure_token = ConvertTo-SecureString -String $Env:GITHUB_TOKEN -AsPlainText -Force
-                    $credential = New-Object System.Management.Automation.PSCredential($user, $secure_token)
 
                     $body_data = @{
-                        tag_name = $Env:RELEASE_TAG
-                        name = "mapirs v" + $Env:VERSION
-                        body = "sha 256 checksum:" + $checksum
+                        'tag_name' = $Env:RELEASE_TAG
+                        'name' = "mapirs v" + $Env:VERSION
+                        'body' = "sha 256 checksum: " + $checksum
                     }
 
                     $body = $body_data | ConvertTo-Json
@@ -66,10 +62,11 @@ pipeline {
                         'Authorization' = "token $Env:GITHUB_TOKEN"
                     }
 
-                    $resp = Invoke-WebRequest -Method 'GET' -Uri $url -Body $body -Headers $headers -SkipHttpErrorCheck
-                    $assets_url = $resp.assets_url
-                    echo $resp
+                    $resp = Invoke-RestMethod -Method 'POST' -Uri $url -Body $body -Headers $headers
 
+                    $asset_url = "https://uploads.github.com/repos/tutao/mapirs/releases/" + $resp.id + "/assets?name=mapirs.dll"
+                    $headers["Content-Type"] = "application/octet-stream"
+                    $asset_resp = Invoke-RestMethod -Method 'POST' -Uri $asset_url -InFile $Env:RELEASE_ASSET_PATH -Headers $headers
                 '''
 			}
 		}
