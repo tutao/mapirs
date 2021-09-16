@@ -1,6 +1,6 @@
 pipeline {
 	environment {
-		VERSION = powershell(
+		VERSION = pwsh(
 		    returnStdout: true,
 		    script: $/(Select-String -Pattern '^version = "(?<v>\d+.\d+.\d+)"' -AllMatches -Path Cargo.toml).Matches[0].Groups[1].value/$
 		).trim()
@@ -20,14 +20,14 @@ pipeline {
 	stages {
 		stage('run tests') {
 			steps {
-			    powershell "cargo test"
+			    pwsh "cargo test"
 			}
 		}
 
 		stage('build the dll') {
 			steps {
 				echo "building mapirs v${VERSION}"
-				powershell 'cargo build --release'
+				pwsh 'cargo build --release'
 				stash includes: "target/release/mapirs.dll", name: 'dll'
 			}
 		}
@@ -36,30 +36,41 @@ pipeline {
 			when {
 				expression { params.PUBLISH }
 			}
+
+			environment {
+			    GITHUB_TOKEN = credentials('github-access-token')
+			    RELEASE_TAG = "mapirs-release-${VERSION}"
+			    RELEASE_ASSET_PATH = "target/release/mapirs.dll"
+			}
+
 			steps {
 				unstash 'dll'
+                pwsh '''
+                    $Env:GITHUB_TOKEN | Out-File cred.txt
+                    $checksum = (Get-FileHash -Algorithm SHA256 -Path $Env:RELEASE_ASSET_PATH).Hash.ToLower()
+                    $url = "https://api.github.com/repos/tutao/mapirs/releases"
+                    $user = "tutao-jenkins"
+                    $secure_token = ConvertTo-SecureString -String $Env:GITHUB_TOKEN -AsPlainText -Force
+                    $credential = New-Object System.Management.Automation.PSCredential($user, $secure_token)
 
-				script {
-					def filePath = "target/release/mapirs.dll"
-					def tag = "mapirs-release-${VERSION}"
+                    $body_data = @{
+                        tag_name = $Env:RELEASE_TAG
+                        name = "mapirs v" + $Env:VERSION
+                        body = "sha 256 checksum:" + $checksum
+                    }
 
-					powershell "git tag ${tag}"
-					powershell "git push --tags"
+                    $body = $body_data | ConvertTo-Json
 
-					def checksum = powershell(
-					    returnStdout: true,
-					    script: "(Get-FileHash -Algorithm SHA256 ${WORKSPACE}/${filePath}).Hash.ToLower()"
-					)
+                    $headers = @{
+                        'Accept' = 'application/vnd.github.v3+json'
+                        'Authorization' = "token $Env:GITHUB_TOKEN"
+                    }
 
-					withCredentials([string(credentialsId: 'github-access-token', variable: 'GITHUB_TOKEN')]) {
-						sh """node buildSrc/createGithubReleasePage.js --name '${VERSION} (Android)' \
-																	   --milestone '${VERSION}' \
-																	   --tag '${tag}' \
-																	   --uploadFile '${WORKSPACE}/${filePath}' \
-																	   --platform android \
-							 										   --apkChecksum ${checksum}"""
-					}
-				}
+                    $resp = Invoke-WebRequest -Method 'GET' -Uri $url -Body $body -Headers $headers -SkipHttpErrorCheck
+                    $assets_url = $resp.assets_url
+                    echo $resp
+
+                '''
 			}
 		}
 	}
