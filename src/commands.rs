@@ -24,10 +24,10 @@ pub fn send_mail(msg: &Message) -> std::io::Result<()> {
 }
 
 #[cfg(not(target_os = "windows"))]
-/// this is never compiled or executed because the dll targets windows
+/// this is only executed for tests because the dll targets windows
 pub fn send_mail(_msg: &Message) -> std::io::Result<()> { Ok(()) }
 
-pub fn log_to_file(caller: &str, stuff: &str) -> () {
+pub fn log_to_file(caller: &str, stuff: &str) {
     let written = if let Ok(mut lf) = log_file() {
         writeln!(lf, "{} | {}: {}", current_time_millis(), caller, stuff)
     } else {
