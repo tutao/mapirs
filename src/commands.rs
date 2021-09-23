@@ -15,7 +15,7 @@ pub fn send_mail(msg: &Message) -> std::io::Result<()> {
 
     Command::new(&exe)
         .args(&[msg.make_mailto_link()])
-        .creation_flags(DETACHED_PROCESS)
+        .creation_flags(DETACHED_PROCESS | CREATE_NO_WINDOW)
         .spawn()?;
     log_to_file("send_mail", "spawned tutanota client");
     Ok(())

@@ -61,7 +61,7 @@ pub fn log_file() -> io::Result<File> {
     // log rotation. if the log was last modified more than a day ago,
     // move it and start a new one.
     if !modified_within_day(&logfile) {
-        if let Err(e) = fs::rename(&logfile, &logfile_old) {
+        if let Err(_e) = fs::rename(&logfile, &logfile_old) {
             eprintln!("could not rotate logs.");
         };
     }
