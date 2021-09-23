@@ -115,12 +115,10 @@ impl Message {
             .collect::<Vec<String>>();
         let subject = self
             .subject
-            .as_ref()
-            .map(|s| s.clone());
+            .as_ref().cloned();
         let body = self
             .note_text
-            .as_ref()
-            .map(|s| s.clone());
+            .as_ref().cloned();
 
         // takes the file descriptors and make file urls from them
         let fd_mapper = |fd: &FileDescriptor| environment::swap_filename(
@@ -135,7 +133,7 @@ impl Message {
 
         let mut url_parts = vec![];
 
-        if cc.len() > 0 {
+        if !cc.is_empty() {
             url_parts.push(format!("cc={}", cc.join(",")));
         }
 
@@ -158,7 +156,7 @@ impl Message {
 
     #[cfg(test)]
     pub fn new(to: Vec<&str>, body: Option<&str>, subject: Option<&str>, attach: Vec<FileDescriptor>) -> Self {
-        return Self {
+        Self {
             subject: subject.map(|s| s.to_owned()),
             note_text: body.map(|b| b.to_owned()),
             message_type: None,
@@ -168,7 +166,7 @@ impl Message {
             originator: None,
             recips: to.into_iter().map(|t| RecipientDescriptor::new(t)).collect(),
             files: attach,
-        };
+        }
     }
 }
 

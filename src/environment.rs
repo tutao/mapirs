@@ -118,25 +118,13 @@ pub fn current_time_millis() -> u128 {
 /// returns None if file_name does not contain a file name or file_path is the root dir
 pub fn swap_filename(file_path: &PathBuf, file_name: &Option<PathBuf>) -> Option<PathBuf> {
     // check if the file name is present and get its last component
-    let file_name = if let Some(nm) = file_name.as_ref().map(|pb| pb.file_name()).flatten() {
-        nm
-    } else {
-        return None;
-    };
+    let file_name = file_name.as_ref().map(|pb| pb.file_name()).flatten()?;
 
     // get the last path component (could be a dir, no way to tell)
-    let path_file_name = if let Some(nm) = file_path.file_name() {
-        nm
-    } else {
-        return None;
-    };
+    let path_file_name = file_path.file_name()?;
 
     // check that the path is not the root
-    let dir_path = if let Some(dp) = file_path.parent() {
-        dp
-    } else {
-        return None;
-    };
+    let dir_path = file_path.parent()?;
 
     if path_file_name == file_name {
         return Some(file_path.clone());

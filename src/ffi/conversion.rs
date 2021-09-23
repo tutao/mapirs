@@ -10,7 +10,7 @@ pub fn maybe_string_from_raw_ptr(ptr: LpStr) -> Option<String> {
     }
     let maybe_str = unsafe {
         let cstr = CStr::from_ptr(ptr);
-        cstr.to_str().clone()
+        cstr.to_str()
     };
 
     if let Ok(s) = maybe_str {

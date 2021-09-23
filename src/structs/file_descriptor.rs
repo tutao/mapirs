@@ -74,9 +74,9 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
             flags: raw.flags,
             position: raw.position,
             path_name: conversion::maybe_string_from_raw_ptr(raw.path_name)
-                .map(|s| PathBuf::from(s))
+                .map(PathBuf::from)
                 .unwrap_or(PathBuf::from("INVALID_PATH")),
-            file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(|s| PathBuf::from(s)),
+            file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(PathBuf::from),
             file_type: file_type_result.ok(),
         }
     }
@@ -85,11 +85,11 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
 impl FileDescriptor {
     #[cfg(test)]
     pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
-        return Self{
+        Self{
             flags: MapiFileFlags::empty(),
             position: 0,
             path_name: PathBuf::from(file_path),
-            file_name: file_name.map(|fname| PathBuf::from(fname)),
+            file_name: file_name.map(PathBuf::from),
             file_type: None
         }
     }

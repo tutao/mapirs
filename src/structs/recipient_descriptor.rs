@@ -55,7 +55,7 @@ impl RecipientDescriptor {
 
     #[cfg(test)]
     pub fn new(address: &str) -> Self {
-        return Self{
+        Self{
             recip_class: 0,
             name: "".to_owned(),
             address: Some(address.to_owned()),
