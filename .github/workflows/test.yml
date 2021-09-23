@@ -14,4 +14,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose --target "x86_64-pc-windows-msvc"
