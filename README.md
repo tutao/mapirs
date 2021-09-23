@@ -23,7 +23,7 @@ you'll have to override `.cargo/config.toml`
 `cargo build --target "x86_64-pc-windows-msvc"` or
 `cargo build --release --target "x86_64-pc-windows-msvc"`
 
-the dll will be placed in ./target/{release,debug}/mapirs.dll
+the dll will be placed in `./target/x86_64-pc-windows-msvc/{release,debug}/mapirs.dll`
 
 ## Crosscompile on Linux
 
@@ -41,7 +41,7 @@ installed.
 `cargo build` or
 `cargo build --release`
 
-the dll will be placed in ./target/x86_64-pc-windows-gnu/{release,debug}/mapirs.dll
+the dll will be placed in `./target/x86_64-pc-windows-gnu/{release,debug}/mapirs.dll`
 
 # Notes
 
