@@ -1,11 +1,13 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
 #[macro_use]
 extern crate bitflags;
 extern crate directories;
 extern crate urlencoding;
-#[cfg(windows)]
 extern crate winreg;
+
+pub use crate::ffi::{
+    MAPIAddress, MAPIDeleteMail, MAPIDetails, MAPIFindNext, MAPIFreeBuffer, MAPILogoff, MAPILogon,
+    MAPIReadMail, MAPIResolveName, MAPISaveMail, MAPISendDocuments, MAPISendMail,
+};
 
 // type aliases to centrally define C <-> Rust type conversions
 mod types;
@@ -20,7 +22,3 @@ mod environment;
 
 // the external API surface exposed to windows
 mod ffi;
-pub use crate::ffi::{
-    MAPIAddress, MAPIDeleteMail, MAPIDetails, MAPIFindNext, MAPIFreeBuffer, MAPILogoff, MAPILogon,
-    MAPIReadMail, MAPIResolveName, MAPISaveMail, MAPISendDocuments, MAPISendMail,
-};

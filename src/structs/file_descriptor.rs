@@ -28,7 +28,7 @@ pub struct FileTagExtension {
 impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
     type Error = ();
     fn try_from(raw_ptr: *const RawMapiFileTagExt) -> Result<Self, Self::Error> {
-        if std::ptr::null() == raw_ptr {
+        if raw_ptr.is_null() {
             Err(())
         } else {
             let raw = unsafe { &*raw_ptr };
@@ -75,7 +75,7 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
             position: raw.position,
             path_name: conversion::maybe_string_from_raw_ptr(raw.path_name)
                 .map(PathBuf::from)
-                .unwrap_or(PathBuf::from("INVALID_PATH")),
+                .unwrap_or_else(|| PathBuf::from("INVALID_PATH")),
             file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(PathBuf::from),
             file_type: file_type_result.ok(),
         }

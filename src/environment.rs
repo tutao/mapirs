@@ -7,10 +7,8 @@ use std::path::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[cfg(target_os = "windows")]
 use winreg::{enums::*, RegKey};
 
-#[cfg(target_os = "windows")]
 fn reg_key() -> io::Result<RegKey> {
     // it would be possible to get the path via hkcu/software/{tutanota GUID}, but that GUID is
     // different for release, test and snapshot.
@@ -30,19 +28,12 @@ fn reg_key() -> io::Result<RegKey> {
 /// an OsString containing the absolute path to
 /// the tutanota desktop executable that registered the dll
 /// as the MAPI handler.
-#[cfg(target_os = "windows")]
 pub fn client_path() -> io::Result<OsString> {
     let tutanota_key = reg_key()?;
     // if this fails, the registry is borked.
     tutanota_key.get_value("EXEPath")
 }
 
-#[cfg(not(target_os = "windows"))]
-pub fn client_path() -> io::Result<OsString> {
-    Ok(OsString::new())
-}
-
-#[cfg(target_os = "windows")]
 #[cfg(not(test))]
 fn log_path() -> io::Result<OsString> {
     let tutanota_key = reg_key()?;
@@ -116,7 +107,7 @@ pub fn current_time_millis() -> u128 {
 /// ```
 ///
 /// returns None if file_name does not contain a file name or file_path is the root dir
-pub fn swap_filename(file_path: &PathBuf, file_name: &Option<PathBuf>) -> Option<PathBuf> {
+pub fn swap_filename(file_path: &Path, file_name: &Option<PathBuf>) -> Option<PathBuf> {
     // check if the file name is present and get its last component
     let file_name = file_name.as_ref().map(|pb| pb.file_name()).flatten()?;
 
@@ -127,7 +118,7 @@ pub fn swap_filename(file_path: &PathBuf, file_name: &Option<PathBuf>) -> Option
     let dir_path = file_path.parent()?;
 
     if path_file_name == file_name {
-        return Some(file_path.clone());
+        return Some(file_path.to_path_buf());
     }
 
     Some(dir_path.join(file_name))

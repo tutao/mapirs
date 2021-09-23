@@ -24,15 +24,19 @@ the dll will be placed in ./target/{release,debug}/mapirs.dll
 
 ## Crosscompile on Linux
 
+.cargo/config is set up so "cargo build" will use the x86_64-pc-windows-gnu target. Running tests requires wine to be
+installed.
+
 ### Prerequisites
 
 * package gcc-mingw-w64
 * cargo
+* wine if running tests
 
 ### Commands
 
-`cargo build --target x86_64-pc-windows-gnu` or
-`cargo build --target x86_64-pc-windows-gnu --release`
+`cargo build` or
+`cargo build --release`
 
 the dll will be placed in ./target/x86_64-pc-windows-gnu/{release,debug}/mapirs.dll
 

@@ -55,7 +55,7 @@ pub struct Message {
 impl TryFrom<*const RawMapiMessage> for Message {
     type Error = ();
     fn try_from(raw_ptr: *const RawMapiMessage) -> Result<Self, Self::Error> {
-        if std::ptr::null() == raw_ptr {
+        if raw_ptr.is_null() {
             Err(())
         } else {
             let raw = unsafe { &*raw_ptr };
@@ -102,10 +102,9 @@ impl Message {
         // address and put the rest (comma-separated) into cc.
         let to = self
             .recips
-            .iter()
-            .nth(0)
+            .get(0)
             .map(|r| r.address.clone())
-            .unwrap_or(Some("".to_owned()))
+            .unwrap_or_else(|| Some("".to_owned()))
             .unwrap();
         let cc = self
             .recips
@@ -124,7 +123,7 @@ impl Message {
         let fd_mapper = |fd: &FileDescriptor| environment::swap_filename(
             &fd.path_name,
             &fd.file_name,
-        ).unwrap_or(fd.path_name.clone());
+        ).unwrap_or_else(|| fd.path_name.clone());
 
         let attachments = self
             .files
@@ -190,43 +189,19 @@ mod tests {
             vec![],
         ).make_mailto_link(), "mailto:a@b.de?cc=b@c.de,d@g.de");
 
-        let desc = if cfg!(target_os = "windows") {
-            FileDescriptor::new("C:\\some\\path file.jpg", "file.txt".into())
-        } else {
-            FileDescriptor::new("/some/path file.jpg", "file.txt".into())
-        };
-
-        let res = if cfg!(target_os = "windows") {
-            "mailto:a@b.de?attach=C%3A%5Csome%5Cfile.txt"
-        } else {
-            "mailto:a@b.de?attach=%2Fsome%2Ffile.txt"
-        };
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            None,
+            None,
+            vec![FileDescriptor::new("C:\\some\\path file.jpg", "file.txt".into())],
+        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Csome%5Cfile.txt");
 
         assert_eq!(Message::new(
             vec!["a@b.de"],
             None,
             None,
-            vec![desc],
-        ).make_mailto_link(), res);
-
-        let desc = if cfg!(target_os = "windows") {
-            FileDescriptor::new("C:\\some\\path file.jpg", None)
-        } else {
-            FileDescriptor::new("/some/path file.jpg", None)
-        };
-
-        let res = if cfg!(target_os = "windows") {
-            "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg"
-        } else {
-            "mailto:a@b.de?attach=%2Fsome%2Fpath%20file.jpg"
-        };
-
-        assert_eq!(Message::new(
-            vec!["a@b.de"],
-            None,
-            None,
-            vec![desc],
-        ).make_mailto_link(), res);
+            vec![FileDescriptor::new("C:\\some\\path file.jpg", None)],
+        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg");
 
         assert_eq!(Message::new(
             vec!["a@b.de"],
