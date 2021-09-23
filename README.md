@@ -10,6 +10,9 @@ issued via the File Explorer context menu or in programs like MS Office and Libr
 
 ## Compile on windows
 
+The project is set up to compile for the `x86_64-pc-windows-gnu` target by default, so if you're developing on windows,
+you'll have to override `.cargo/config.toml`
+
 ### Prerequisites
 
 * Microsoft Visual C++ 2019 build tools
@@ -17,21 +20,21 @@ issued via the File Explorer context menu or in programs like MS Office and Libr
 
 ### Commands
 
-`cargo build` or
-`cargo build --release`
+`cargo build --target "x86_64-pc-windows-msvc"` or
+`cargo build --release --target "x86_64-pc-windows-msvc"`
 
 the dll will be placed in ./target/{release,debug}/mapirs.dll
 
 ## Crosscompile on Linux
 
-.cargo/config is set up so "cargo build" will use the x86_64-pc-windows-gnu target. Running tests requires wine to be
+The project is set up so "cargo build" will use the `x86_64-pc-windows-gnu` target. Running tests requires wine to be
 installed.
 
 ### Prerequisites
 
 * package gcc-mingw-w64
 * cargo
-* wine if running tests
+* wine
 
 ### Commands
 
