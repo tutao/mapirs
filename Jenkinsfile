@@ -20,14 +20,14 @@ pipeline {
 	stages {
 		stage('run tests') {
 			steps {
-			    pwsh "cargo test"
+			    pwsh 'cargo test --target "x86_64-pc-windows-msvc"'
 			}
 		}
 
 		stage('build the dll') {
 			steps {
 				echo "building mapirs v${VERSION}"
-				pwsh 'cargo build --release'
+				pwsh 'cargo build --release --target "x86_64-pc-windows-msvc"'
 				stash includes: "target/release/mapirs.dll", name: 'dll'
 			}
 		}
