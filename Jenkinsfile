@@ -30,7 +30,7 @@ pipeline {
 				echo "building mapirs v${VERSION}"
 				pwsh 'cargo clean'
 				pwsh 'cargo build --release --target "x86_64-pc-windows-msvc"'
-				stash includes: "target/release/x86_64-pc-windows-msvc/mapirs.dll", name: 'dll'
+				stash includes: "target/x86_64-pc-windows-msvc/release/mapirs.dll", name: 'dll'
 			}
 		}
 
