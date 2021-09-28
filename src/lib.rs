@@ -19,6 +19,5 @@ mod flags;
 mod commands;
 // responsible for finding out where the client is installed
 mod environment;
-
 // the external API surface exposed to windows
 mod ffi;

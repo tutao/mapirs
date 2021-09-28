@@ -19,7 +19,7 @@ pub extern "C" fn MAPILogon(
     _password: LpStr,       // LPSTR lpszPassword
     _flags: MapiLogonFlags, // FLAGS flFlags
     _reserved: ULong,       // ULONG ulReserved (mb 0)
-    _session: LpVoid,       // TODO: LPLHANDLE lplhSession??
+    _session: LpVoid,       // was LPLHANDLE lplhSession. fix if we ever want to use sessions
 ) -> MapiStatusCode {
     commands::log_to_file("mapilogon", "");
     MapiStatusCode::NotSupported
@@ -28,7 +28,7 @@ pub extern "C" fn MAPILogon(
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapilogoff
 #[no_mangle]
 pub extern "C" fn MAPILogoff(
-    _session: LpVoid,    // TODO: LHANDLE lhSession
+    _session: LpVoid,    // was LPLHANDLE lplhSession. fix if we ever want to use sessions
     _ui_param: ULongPtr, // ULONG_PTR ulUIParam
     _flags: ULong,       // FLAGS flFlags (reserved, must be zero)
     _reserved: ULong,    // ULONG ulReserved
@@ -40,7 +40,7 @@ pub extern "C" fn MAPILogoff(
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapisendmail
 #[no_mangle]
 pub extern "C" fn MAPISendMail(
-    _session: LpVoid,                // TODO: LHANDLE lhSession
+    _session: LpVoid,                // was LPLHANDLE lplhSession. fix if we ever want to use sessions
     _ui_param: ULongPtr,             // ULONG_PTR
     message: *const RawMapiMessage, // lpMapiMessage lpMessage
     _flags: MapiSendMailFlags,       // FLAGS flFlags

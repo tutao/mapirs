@@ -5,8 +5,10 @@ use std::io;
 use std::path::{
     Path, PathBuf,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 
+use chrono::prelude::DateTime;
+use chrono::Utc;
 use winreg::{enums::*, RegKey};
 
 fn reg_key() -> io::Result<RegKey> {
@@ -42,7 +44,7 @@ fn log_path() -> io::Result<OsString> {
 
 #[cfg(test)]
 fn log_path() -> io::Result<OsString> {
-    Ok(OsString::from("/some/weird/path"))
+    Ok(OsString::from("C:\\some\\weird\\path"))
 }
 
 /// try to get a file handle to
@@ -69,7 +71,7 @@ pub fn log_file() -> io::Result<File> {
     OpenOptions::new()
         .write(true)
         .append(true)
-        .open(&logfile) // PathBuf is not copy
+        .open(&logfile)
         .or_else(|_| File::create(&logfile))
 }
 
@@ -86,24 +88,19 @@ fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
     }
 }
 
-/// get the current system time in
-/// milliseconds since unix epoch
-pub fn current_time_millis() -> u128 {
-    let duration = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("time went backwards");
-    duration.as_millis()
+/// get the current system time as a formatted string
+pub fn current_time_formatted() -> String {
+    let date_time = DateTime::<Utc>::from(SystemTime::now());
+    date_time.format("%Y-%m-%d | %H:%M:%S.%3f").to_string()
 }
 
 /// get a path to a file in the same directory as file_path but named file_name
 ///
-/// TODO: get this example to run as a doctest on linux?
-/// TODO: for now, it's part of the test mod below
 /// ```
-/// let fpath = PathBuf::from("/home/u/text.txt");
+/// let fpath = PathBuf::from("C:\\Users\\u\\text.txt");
 /// let fname = Some(PathBuf::from("image.jpg"));
 /// let res1 = swap_filename(&fpath, &fname);
-/// assert_eq!(res1.unwrap(), PathBuf::from("/home/u/image.jpg"));
+/// assert_eq!(res1.unwrap(), PathBuf::from("C:\\Users\\u\\image.jpg"));
 /// ```
 ///
 /// returns None if file_name does not contain a file name or file_path is the root dir

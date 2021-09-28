@@ -3,7 +3,7 @@ use std::io::Write;
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 
-use crate::environment::{client_path, current_time_millis, log_file};
+use crate::environment::{client_path, current_time_formatted, log_file};
 use crate::structs::Message;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -23,7 +23,7 @@ pub fn send_mail(msg: &Message) -> std::io::Result<()> {
 
 pub fn log_to_file(caller: &str, stuff: &str) {
     let written = if let Ok(mut lf) = log_file() {
-        writeln!(lf, "{} | {}: {}", current_time_millis(), caller, stuff)
+        writeln!(lf, "{} | {}: {}", current_time_formatted(), caller, stuff)
     } else {
         eprintln!("Couldn't open file");
         Ok(())

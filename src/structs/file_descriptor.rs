@@ -31,6 +31,21 @@ impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
         if raw_ptr.is_null() {
             Err(())
         } else {
+            /*
+            SAFETY: https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer
+            Raw Pointers:
+            * Are allowed to ignore the borrowing rules by having both immutable and mutable
+              pointers or multiple mutable pointers to the same location:
+                -> we don't copy these pointers or mutate the pointees, so the only way this can
+                   cause problems would be a bug in the calling app
+            * Aren’t guaranteed to point to valid memory:
+                -> this would be a bug in the calling app, we're using repr(C) to make
+                   RawMapiFileTagExt as defined in mapi.h
+            * Are allowed to be null:
+                -> we checked that
+            * Don’t implement any automatic cleanup:
+                -> we got the ptr over ffi, so the calling app needs to clean this up
+            */
             let raw = unsafe { &*raw_ptr };
             Ok(FileTagExtension {
                 tag: conversion::copy_c_array_to_vec(raw.lp_tag, raw.cb_tag as usize),
@@ -67,17 +82,21 @@ pub struct FileDescriptor {
     file_type: Option<FileTagExtension>,
 }
 
-impl From<&RawMapiFileDesc> for FileDescriptor {
-    fn from(raw: &RawMapiFileDesc) -> Self {
-        let file_type_result = FileTagExtension::try_from(raw.file_type);
-        FileDescriptor {
-            flags: raw.flags,
-            position: raw.position,
-            path_name: conversion::maybe_string_from_raw_ptr(raw.path_name)
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from("INVALID_PATH")),
-            file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(PathBuf::from),
-            file_type: file_type_result.ok(),
+impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
+    type Error = ();
+
+    fn try_from(raw: &RawMapiFileDesc) -> Result<Self, Self::Error> {
+        if let Some(file_path) = conversion::maybe_string_from_raw_ptr(raw.path_name)
+            .map(PathBuf::from) {
+            Ok(FileDescriptor {
+                flags: raw.flags,
+                position: raw.position,
+                path_name: file_path,
+                file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(PathBuf::from),
+                file_type: FileTagExtension::try_from(raw.file_type).ok(),
+            })
+        } else {
+            Err(())
         }
     }
 }
@@ -85,12 +104,12 @@ impl From<&RawMapiFileDesc> for FileDescriptor {
 impl FileDescriptor {
     #[cfg(test)]
     pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
-        Self{
+        Self {
             flags: MapiFileFlags::empty(),
             position: 0,
             path_name: PathBuf::from(file_path),
             file_name: file_name.map(PathBuf::from),
-            file_type: None
+            file_type: None,
         }
     }
 }

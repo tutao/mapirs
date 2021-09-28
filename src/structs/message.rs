@@ -4,6 +4,7 @@ use std::io;
 
 use urlencoding::encode;
 
+use crate::commands::log_to_file;
 use crate::environment;
 use crate::ffi::conversion;
 use crate::flags::MapiMessageFlags;
@@ -27,16 +28,16 @@ pub struct RawMapiMessage {
     conversation_id: LpStr,
     // LPSTR lpszConversationID - conversation thread id
     flags: MapiMessageFlags,
-    // TODO: FLAGS flFlags - unread, return receipt
+    // FLAGS flFlags
     originator: *const RawMapiRecipDesc,
-    // TODO: lpMapiRecipDesc lpOriginator - originator descriptor
+    // lpMapiRecipDesc lpOriginator
     recip_count: ULong,
     // ULONG nRecipCount - number of recipients
     recips: *const RawMapiRecipDesc,
-    // TODO: lpMapiRecipDesc lpRecips - recipient descriptors
+    // lpMapiRecipDesc lpRecips - recipient descriptors
     file_count: ULong,
     // ULONG nFileCount - # of file attachments
-    files: *const RawMapiFileDesc,       // TODO: lpMapiFileDesc lpFiles - attachment descriptors
+    files: *const RawMapiFileDesc,       // lpMapiFileDesc lpFiles - attachment descriptors
 }
 
 #[derive(Debug)]
@@ -58,10 +59,43 @@ impl TryFrom<*const RawMapiMessage> for Message {
         if raw_ptr.is_null() {
             Err(())
         } else {
+            /*
+            SAFETY: https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer
+            Raw Pointers:
+            * Are allowed to ignore the borrowing rules by having both immutable and mutable
+              pointers or multiple mutable pointers to the same location:
+                -> we don't copy these pointers or mutate the pointees, so the only way this can
+                   cause problems would be a bug in the calling app
+            * Aren’t guaranteed to point to valid memory:
+                -> this would be a bug in the calling app, we're using repr(C) to make
+                   RawMapiMessage as defined in mapi.h
+            * Are allowed to be null:
+                -> we checked that
+            * Don’t implement any automatic cleanup:
+                -> we got the ptr over ffi, so the calling app needs to clean this up
+            */
             let raw = unsafe { &*raw_ptr };
             let originator_result = RecipientDescriptor::try_from(raw.originator);
-            let recips: Vec<RecipientDescriptor> = conversion::raw_to_vec(raw.recips, raw.recip_count as usize);
-            let files: Vec<FileDescriptor> = conversion::raw_to_vec(raw.files, raw.file_count as usize);
+            let recips: Vec<RecipientDescriptor> = conversion::raw_to_vec(raw.recips, raw.recip_count as usize)
+                .into_iter()
+                .flatten()
+                .collect();
+            if recips.len() < raw.recip_count as usize {
+                log_to_file(
+                    "Message::from::<RawMapiMessage>",
+                    "could not parse one or more RecipientDescriptors",
+                );
+            }
+            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<FileDescriptor, RawMapiFileDesc>(raw.files, raw.file_count as usize)
+                .into_iter()
+                .flatten()
+                .collect();
+            if files.len() < raw.file_count as usize {
+                log_to_file(
+                    "Message::from::<RawMapiMessage>",
+                    "could not parse one or more FileDescriptors",
+                );
+            }
             Ok(Message {
                 subject: conversion::maybe_string_from_raw_ptr(raw.subject),
                 note_text: conversion::maybe_string_from_raw_ptr(raw.note_text),
@@ -84,6 +118,7 @@ impl Message {
     /// don't do anything if file name is the same as the path pointed to
     /// or if the attachment file descriptor doesn't have a separate file
     /// name.
+    /// TODO: use user's tmp dir
     pub fn ensure_attachments(&self) -> io::Result<()> {
         for file_desc in &self.files {
             let maybe_path = environment::swap_filename(&file_desc.path_name, &file_desc.file_name);

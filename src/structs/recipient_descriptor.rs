@@ -33,6 +33,21 @@ impl TryFrom<*const RawMapiRecipDesc> for RecipientDescriptor {
         if raw_ptr.is_null() {
             Err(())
         } else {
+            /*
+            SAFETY: https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer
+            Raw Pointers:
+            * Are allowed to ignore the borrowing rules by having both immutable and mutable
+              pointers or multiple mutable pointers to the same location:
+                -> we don't copy these pointers or mutate the pointees, so the only way this can
+                   cause problems would be a bug in the calling app
+            * Aren’t guaranteed to point to valid memory:
+                -> this would be a bug in the calling app, we're using repr(C) to make
+                   RawMapiRecipDesc as defined in mapi.h
+            * Are allowed to be null:
+                -> we checked that
+            * Don’t implement any automatic cleanup:
+                -> we got the ptr over ffi, so the calling app needs to clean this up
+            */
             let raw: &RawMapiRecipDesc = unsafe { &*raw_ptr };
             Ok(Self::from(raw))
         }

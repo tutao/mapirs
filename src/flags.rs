@@ -17,8 +17,9 @@ bitflags! {
     }
 }
 
-// ULONG
+// ULONG are 32 bit on windows
 #[repr(u32)]
+#[allow(dead_code)]
 pub enum MessageCodePage {
     Ansi = 0,
     Utf8 = 65001,
@@ -26,6 +27,7 @@ pub enum MessageCodePage {
 
 // ULONG
 #[repr(u32)]
+#[allow(dead_code)]
 pub enum MapiRecipClass {
     Orig = 0,
     To = 1,

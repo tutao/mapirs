@@ -42,7 +42,7 @@ pipeline {
 			environment {
 			    GITHUB_TOKEN = credentials('github-access-token')
 			    RELEASE_TAG = "mapirs-release-${VERSION}"
-			    RELEASE_ASSET_PATH = "target/release/mapirs.dll"
+			    RELEASE_ASSET_PATH = "target/release/x86_64-pc-windows-msvc/mapirs.dll"
 			}
 
 			steps {

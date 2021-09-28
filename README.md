@@ -3,6 +3,9 @@
 This is a small, windows-only dynamic library that can be used to translate Windows MAPI calls to command line
 arguments.
 
+It handles calls to the functions defined in the mapi.h header, which is not available directly from Microsoft anymore.
+You can get it from https://github.com/stephenegriffin/MAPIStubLibrary/blob/master/include/MAPI.h
+
 The main purpose is to enable Tutanota Desktop on Windows to handle requests to send files via mail, like they can be
 issued via the File Explorer context menu or in programs like MS Office and LibreOffice.
 
@@ -11,7 +14,7 @@ issued via the File Explorer context menu or in programs like MS Office and Libr
 ## Compile on windows
 
 The project is set up to compile for the `x86_64-pc-windows-gnu` target by default, so if you're developing on windows,
-you'll have to override `.cargo/config.toml`
+you'll have to override `.cargo/config.toml` as shown in the **"Commands"** section below.
 
 ### Prerequisites
 
@@ -20,7 +23,10 @@ you'll have to override `.cargo/config.toml`
 
 ### Commands
 
-`cargo build --target "x86_64-pc-windows-msvc"` or
+`cargo build --target "x86_64-pc-windows-msvc"`
+
+or
+
 `cargo build --release --target "x86_64-pc-windows-msvc"`
 
 the dll will be placed in `./target/x86_64-pc-windows-msvc/{release,debug}/mapirs.dll`
@@ -38,7 +44,10 @@ installed.
 
 ### Commands
 
-`cargo build` or
+`cargo build`
+
+or
+
 `cargo build --release`
 
 the dll will be placed in `./target/x86_64-pc-windows-gnu/{release,debug}/mapirs.dll`
