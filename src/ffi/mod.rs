@@ -48,7 +48,7 @@ pub extern "C" fn MAPISendMail(
 ) -> MapiStatusCode {
     if let Ok(msg) = Message::try_from(message) {
         commands::log_to_file("mapisendmail", "parsed message, sending...");
-        if let Err(e) = send_mail(&msg) {
+        if let Err(e) = send_mail(msg) {
             commands::log_to_file(
                 "mapisendmail",
                 &format!("could not send mail: {:?}", e),
@@ -57,7 +57,7 @@ pub extern "C" fn MAPISendMail(
         } else {
             commands::log_to_file(
                 "mapisendmail",
-                &format!("sent message: {:?}", msg),
+                "sent message!",
             );
             MapiStatusCode::Success
         }

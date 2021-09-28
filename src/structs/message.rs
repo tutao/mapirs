@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
-use std::fs;
-use std::io;
+use std::path::PathBuf;
 
 use urlencoding::encode;
 
@@ -112,24 +111,26 @@ impl TryFrom<*const RawMapiMessage> for Message {
 }
 
 impl Message {
-    /// FileDescriptors may have a path and a separate file name
-    /// to make it easier, copy the attachment to the file name
-    /// next to the path.
-    /// don't do anything if file name is the same as the path pointed to
-    /// or if the attachment file descriptor doesn't have a separate file
-    /// name.
-    /// TODO: use user's tmp dir
-    pub fn ensure_attachments(&self) -> io::Result<()> {
-        for file_desc in &self.files {
-            let maybe_path = environment::swap_filename(&file_desc.path_name, &file_desc.file_name);
-            let new_path = if let Some(np) = maybe_path {
-                np
-            } else {
-                continue;
-            };
-            fs::copy(&file_desc.path_name, &new_path)?;
-        }
-        Ok(())
+    /// Copy the files to be attached to a location that consolidates the name and the path in the
+    /// file descriptors.
+    ///
+    /// FileDescriptors may have a path and a separate file name, but we only have a single path to
+    /// pass in the mailto-url, so the file name at the end of the path should be what's in the
+    /// file descriptor.
+    ///
+    /// This doesn't do anything if the file name is the same as the last element of the file path
+    /// or if the attachment file descriptor doesn't have a separate file name.
+    /// otherwise, it copies the file from the file path to the temp directory and renames it so the
+    /// name matches file_name
+    ///
+    /// This will lead to some files being attached from an unexpected location, but it is
+    /// preferable to copying the file next to the one with the wrong name and possibly clobbering other files
+    /// or not using file_name at all.
+    pub fn ensure_attachments(&self) -> Vec<PathBuf> {
+        let tmp_path: Option<PathBuf> = environment::tmp_path().ok().map(|p| p.into());
+        self.files.iter()
+            .map(|desc| desc.consolidate_into(&tmp_path))
+            .collect()
     }
 
     pub fn make_mailto_link(&self) -> String {
@@ -154,17 +155,6 @@ impl Message {
             .note_text
             .as_ref().cloned();
 
-        // takes the file descriptors and make file urls from them
-        let fd_mapper = |fd: &FileDescriptor| environment::swap_filename(
-            &fd.path_name,
-            &fd.file_name,
-        ).unwrap_or_else(|| fd.path_name.clone());
-
-        let attachments = self
-            .files
-            .iter()
-            .map(fd_mapper);
-
         let mut url_parts = vec![];
 
         if !cc.is_empty() {
@@ -179,13 +169,14 @@ impl Message {
             url_parts.push(format!("body={}", encode(&body_text)));
         }
 
-        for attachment in attachments {
+        for attachment in self.ensure_attachments() {
             if let Some(fp) = attachment.to_str() {
                 url_parts.push(format!("attach={}", encode(fp)));
             }
         }
-
-        format!("mailto:{}?{}", to, url_parts.join("&"))
+        let lnk = format!("mailto:{}?{}", to, url_parts.join("&"));
+        log_to_file("make_mailto", &lnk);
+        lnk
     }
 
     #[cfg(test)]
@@ -229,7 +220,14 @@ mod tests {
             None,
             None,
             vec![FileDescriptor::new("C:\\some\\path file.jpg", "file.txt".into())],
-        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Csome%5Cfile.txt");
+        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Ctmp%5Cfile.txt");
+
+        assert_eq!(Message::new(
+            vec!["a@b.de"],
+            None,
+            None,
+            vec![FileDescriptor::new("C:\\", "file.txt".into())],
+        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5C");
 
         assert_eq!(Message::new(
             vec!["a@b.de"],

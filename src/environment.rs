@@ -47,6 +47,21 @@ fn log_path() -> io::Result<OsString> {
     Ok(OsString::from("C:\\some\\weird\\path"))
 }
 
+/// retrieve the configured tmp dir from the registry and
+/// try to ensure the directory is there.
+#[cfg(not(test))]
+pub fn tmp_path() -> io::Result<OsString> {
+    let tutanota_key = reg_key()?;
+    let tmp_dir = tutanota_key.get_value("TMPPath")?;
+    fs::create_dir_all(&tmp_dir)?;
+    Ok(tmp_dir)
+}
+
+#[cfg(test)]
+pub fn tmp_path() -> io::Result<OsString> {
+    Ok(OsString::from("C:\\tmp"))
+}
+
 /// try to get a file handle to
 /// a log file inside the tutanota
 /// desktop user data directory.
@@ -92,67 +107,4 @@ fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
 pub fn current_time_formatted() -> String {
     let date_time = DateTime::<Utc>::from(SystemTime::now());
     date_time.format("%Y-%m-%d | %H:%M:%S.%3f").to_string()
-}
-
-/// get a path to a file in the same directory as file_path but named file_name
-///
-/// ```
-/// let fpath = PathBuf::from("C:\\Users\\u\\text.txt");
-/// let fname = Some(PathBuf::from("image.jpg"));
-/// let res1 = swap_filename(&fpath, &fname);
-/// assert_eq!(res1.unwrap(), PathBuf::from("C:\\Users\\u\\image.jpg"));
-/// ```
-///
-/// returns None if file_name does not contain a file name or file_path is the root dir
-pub fn swap_filename(file_path: &Path, file_name: &Option<PathBuf>) -> Option<PathBuf> {
-    // check if the file name is present and get its last component
-    let file_name = file_name.as_ref().map(|pb| pb.file_name()).flatten()?;
-
-    // get the last path component (could be a dir, no way to tell)
-    let path_file_name = file_path.file_name()?;
-
-    // check that the path is not the root
-    let dir_path = file_path.parent()?;
-
-    if path_file_name == file_name {
-        return Some(file_path.to_path_buf());
-    }
-
-    Some(dir_path.join(file_name))
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use crate::environment::swap_filename;
-
-    #[test]
-    fn swap_filename_works() {
-        let fpath1 = PathBuf::from("/home/u/text.txt");
-        let fpath2 = PathBuf::from("/");
-        let fpath3 = PathBuf::from("/home/no/");
-        let fname1 = Some(PathBuf::from("image.jpg"));
-        let fname2 = None;
-        let fname3 = Some(PathBuf::from("hello/image.jpg"));
-        let fname4 = Some(PathBuf::from("text.txt"));
-        // normal operation
-        let res1 = swap_filename(&fpath1, &fname1);
-        assert_eq!(res1.unwrap(), PathBuf::from("/home/u/image.jpg"));
-        // if there's no file name, we don't return anything
-        let res2 = swap_filename(&fpath1, &fname2);
-        assert!(res2.is_none());
-        // root dir doesn't have a parent
-        let res3 = swap_filename(&fpath2, &fname1);
-        assert!(res3.is_none());
-        // if file path is a dir, we still want to do our thing.
-        let res4 = swap_filename(&fpath3, &fname1);
-        assert_eq!(res4.unwrap(), PathBuf::from("/home/image.jpg"));
-        // get only the last component (file name) of the second arg
-        let res5 = swap_filename(&fpath1, &fname3);
-        assert_eq!(res5.unwrap(), PathBuf::from("/home/u/image.jpg"));
-        // do nothing if the result is equal to file_path
-        let res6 = swap_filename(&fpath1, &fname4);
-        assert_eq!(res6.unwrap(), fpath1);
-    }
 }
