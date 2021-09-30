@@ -4,6 +4,7 @@ pipeline {
 		    returnStdout: true,
 		    script: $/(Select-String -Pattern '^version = "(?<v>\d+.\d+.\d+)"' -AllMatches -Path Cargo.toml).Matches[0].Groups[1].value/$
 		).trim()
+		RELEASE_ASSET_PATH = "target/x86_64-pc-windows-msvc/release/mapirs.dll"
 	}
 
 	agent {
@@ -30,7 +31,7 @@ pipeline {
 				echo "building mapirs v${VERSION}"
 				pwsh 'cargo clean'
 				pwsh 'cargo build --release --target "x86_64-pc-windows-msvc"'
-				stash includes: "target/x86_64-pc-windows-msvc/release/mapirs.dll", name: 'dll'
+				stash includes: "${RELEASE_ASSET_PATH}", name: 'dll'
 			}
 		}
 
@@ -42,7 +43,6 @@ pipeline {
 			environment {
 			    GITHUB_TOKEN = credentials('github-access-token')
 			    RELEASE_TAG = "mapirs-release-${VERSION}"
-			    RELEASE_ASSET_PATH = "target/release/x86_64-pc-windows-msvc/mapirs.dll"
 			}
 
 			steps {
