@@ -2,9 +2,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::path::{
-    Path, PathBuf,
-};
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use chrono::prelude::DateTime;
@@ -93,10 +91,14 @@ pub fn log_file() -> io::Result<File> {
 /// check if the file at a path was modified less than a day ago
 /// ignores pretty much any error, returning false
 fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
-    if let Some(v) = fs::metadata(filepath).ok()
-        .map(|md| md.modified().ok()).flatten()
-        .map(|modified| SystemTime::now().duration_since(modified).ok()).flatten()
-        .map(|dur| dur.as_secs() < 60 * 60 * 24) {
+    if let Some(v) = fs::metadata(filepath)
+        .ok()
+        .map(|md| md.modified().ok())
+        .flatten()
+        .map(|modified| SystemTime::now().duration_since(modified).ok())
+        .flatten()
+        .map(|dur| dur.as_secs() < 60 * 60 * 24)
+    {
         v
     } else {
         false

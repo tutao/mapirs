@@ -31,5 +31,3 @@ pub fn log_to_file(caller: &str, stuff: &str) {
         eprintln!("Couldn't write to file");
     }
 }
-
-

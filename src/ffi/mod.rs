@@ -14,12 +14,18 @@ pub mod conversion;
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapilogon
 #[no_mangle]
 pub extern "C" fn MAPILogon(
-    _ui_param: ULongPtr,    // ULONG_PTR ulUIParam
-    _profile_name: LpStr,   // LPSTR lpszProfileName
-    _password: LpStr,       // LPSTR lpszPassword
-    _flags: MapiLogonFlags, // FLAGS flFlags
-    _reserved: ULong,       // ULONG ulReserved (mb 0)
-    _session: LpVoid,       // was LPLHANDLE lplhSession. fix if we ever want to use sessions
+    // ULONG_PTR ulUIParam
+    _ui_param: ULongPtr,
+    // LPSTR lpszProfileName
+    _profile_name: LpStr,
+    // LPSTR lpszPassword
+    _password: LpStr,
+    // FLAGS flFlags
+    _flags: MapiLogonFlags,
+    // ULONG ulReserved (mb 0)
+    _reserved: ULong,
+    // was LPLHANDLE lplhSession. fix if we ever want to use sessions
+    _session: LpVoid,
 ) -> MapiStatusCode {
     commands::log_to_file("mapilogon", "");
     MapiStatusCode::NotSupported
@@ -28,10 +34,14 @@ pub extern "C" fn MAPILogon(
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapilogoff
 #[no_mangle]
 pub extern "C" fn MAPILogoff(
-    _session: LpVoid,    // was LPLHANDLE lplhSession. fix if we ever want to use sessions
-    _ui_param: ULongPtr, // ULONG_PTR ulUIParam
-    _flags: ULong,       // FLAGS flFlags (reserved, must be zero)
-    _reserved: ULong,    // ULONG ulReserved
+    // was LPLHANDLE lplhSession. fix if we ever want to use sessions
+    _session: LpVoid,
+    // ULONG_PTR ulUIParam
+    _ui_param: ULongPtr,
+    // FLAGS flFlags (reserved, must be zero)
+    _flags: ULong,
+    // ULONG ulReserved
+    _reserved: ULong,
 ) -> MapiStatusCode {
     commands::log_to_file("mapilogoff", "");
     MapiStatusCode::NotSupported
@@ -40,25 +50,24 @@ pub extern "C" fn MAPILogoff(
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapisendmail
 #[no_mangle]
 pub extern "C" fn MAPISendMail(
-    _session: LpVoid,                // was LPLHANDLE lplhSession. fix if we ever want to use sessions
-    _ui_param: ULongPtr,             // ULONG_PTR
-    message: *const RawMapiMessage, // lpMapiMessage lpMessage
-    _flags: MapiSendMailFlags,       // FLAGS flFlags
-    _reserved: ULong,                // ULONG reserved mb 0
+    // was LPLHANDLE lplhSession. fix if we ever want to use sessions
+    _session: LpVoid,
+    // ULONG_PTR
+    _ui_param: ULongPtr,
+    // lpMapiMessage lpMessage
+    message: *const RawMapiMessage,
+    // FLAGS flFlags
+    _flags: MapiSendMailFlags,
+    // ULONG reserved mb 0
+    _reserved: ULong,
 ) -> MapiStatusCode {
     if let Ok(msg) = Message::try_from(message) {
         commands::log_to_file("mapisendmail", "parsed message, sending...");
         if let Err(e) = send_mail(msg) {
-            commands::log_to_file(
-                "mapisendmail",
-                &format!("could not send mail: {:?}", e),
-            );
+            commands::log_to_file("mapisendmail", &format!("could not send mail: {:?}", e));
             MapiStatusCode::Failure
         } else {
-            commands::log_to_file(
-                "mapisendmail",
-                "sent message!",
-            );
+            commands::log_to_file("mapisendmail", "sent message!");
             MapiStatusCode::Success
         }
     } else {
@@ -71,9 +80,12 @@ pub extern "C" fn MAPISendMail(
 #[no_mangle]
 pub extern "C" fn MAPISendDocuments(
     _ui_param: ULongPtr,
-    _delim_char: InLpStr, // __in LPSTR lpszDelimChar
-    _file_paths: InLpStr, // __in LPSTR lpszFilePaths
-    _file_names: InLpStr, // __in LPSTR lpszFileNames
+    // __in LPSTR lpszDelimChar
+    _delim_char: InLpStr,
+    // __in LPSTR lpszFilePaths
+    _file_paths: InLpStr,
+    // __in LPSTR lpszFileNames
+    _file_names: InLpStr,
     _reserved: ULong,
 ) -> MapiStatusCode {
     commands::log_to_file("mapisenddocuments", "");
@@ -85,11 +97,14 @@ pub extern "C" fn MAPISendDocuments(
 pub extern "C" fn MAPIFindNext(
     _session: LpVoid,
     _ui_param: ULongPtr,
-    _message_type: LpStr,    // LPSTR lpszMessageType
-    _seed_message_id: LpStr, // LPSTR lpszSeedMessageID
+    // LPSTR lpszMessageType
+    _message_type: LpStr,
+    // LPSTR lpszSeedMessageID
+    _seed_message_id: LpStr,
     _flags: MapiFindNextFlags,
     _reserved: ULong,
-    _message_id: LpStr, // LPSTR lpszMessageID
+    // LPSTR lpszMessageID
+    _message_id: LpStr,
 ) -> MapiStatusCode {
     commands::log_to_file("mapifindnext", "");
     MapiStatusCode::NotSupported
@@ -99,10 +114,12 @@ pub extern "C" fn MAPIFindNext(
 pub extern "C" fn MAPIReadMail(
     _session: LpVoid,
     _ui_param: ULongPtr,
-    _message_id: InLpStr, // __in LPSTR lpszMessageID
+    // __in LPSTR lpszMessageID
+    _message_id: InLpStr,
     _flags: MapiReadMailFlags,
     _reserved: ULong,
-    _message: *const RawMapiMessage, // lpMapiMessage FAR *lppMessage
+    // lpMapiMessage FAR *lppMessage
+    _message: *const RawMapiMessage,
 ) -> MapiStatusCode {
     commands::log_to_file("mapireadmail", "");
     MapiStatusCode::NotSupported
@@ -112,10 +129,12 @@ pub extern "C" fn MAPIReadMail(
 pub extern "C" fn MAPISaveMail(
     _session: LpVoid,
     _ui_param: ULongPtr,
-    _message: *const RawMapiMessage, // lpMapimessage lpMessage
+    // lpMapimessage lpMessage
+    _message: *const RawMapiMessage,
     _flags: MapiSaveMailFlags,
     _reserved: ULong,
-    _message_id: InLpStr, // __in LPSTR lpszMessageID
+    // __in LPSTR lpszMessageID
+    _message_id: InLpStr,
 ) -> MapiStatusCode {
     commands::log_to_file("mapisavemail", "");
     MapiStatusCode::NotSupported
@@ -125,8 +144,10 @@ pub extern "C" fn MAPISaveMail(
 pub extern "C" fn MAPIDeleteMail(
     _session: LpVoid,
     _ui_param: ULongPtr,
-    _message_id: InLpStr, // __in LPSTR lpsz MessageID
-    _flags: ULong,        // reserved, must be zero
+    // __in LPSTR lpsz MessageID
+    _message_id: InLpStr,
+    // reserved, must be zero
+    _flags: ULong,
     _reserved: ULong,
 ) -> MapiStatusCode {
     commands::log_to_file("mapideletemail", "");
@@ -142,16 +163,25 @@ pub extern "C" fn MAPIFreeBuffer(_pv: LpVoid) -> MapiStatusCode {
 #[no_mangle]
 pub extern "C" fn MAPIAddress(
     _session: LpVoid,
-    _ui_param: ULongPtr,                  // ULONG_PTR
-    _caption: InLpStr,                    // __in LPSTR lpszCaption
-    _n_edit_fields: ULong,                // ULONG
-    _labels: InLpStr,                     // __in LPSTR lpszLabels
-    _n_recipients: ULong,                 // ULONG
-    _recipients: *const RawMapiRecipDesc, // lpMapiRecipDesc lpRecips
+    // ULONG_PTR
+    _ui_param: ULongPtr,
+    // __in LPSTR lpszCaption
+    _caption: InLpStr,
+    // ULONG
+    _n_edit_fields: ULong,
+    // __in LPSTR lpszLabels
+    _labels: InLpStr,
+    // ULONG
+    _n_recipients: ULong,
+    // lpMapiRecipDesc lpRecips
+    _recipients: *const RawMapiRecipDesc,
     _flags: MapiAddressFlags,
-    _reserved: ULong,                         // ULONG
-    _n_new_recipients: ULongPtr,              // LPULONG lpnNewRecips
-    _new_recipients: *const RawMapiRecipDesc, // lpMapiRecipDesc FAR *lppNewRecips
+    // ULONG
+    _reserved: ULong,
+    // LPULONG lpnNewRecips
+    _n_new_recipients: ULongPtr,
+    // lpMapiRecipDesc FAR *lppNewRecips
+    _new_recipients: *const RawMapiRecipDesc,
 ) -> MapiStatusCode {
     commands::log_to_file("mapiaddress", "");
     MapiStatusCode::NotSupported
@@ -173,10 +203,12 @@ pub extern "C" fn MAPIDetails(
 pub extern "C" fn MAPIResolveName(
     _session: LpVoid,
     _ui_param: ULong,
-    _name: InLpStr, // __in LPSTR lpszName
+    // __in LPSTR lpszName
+    _name: InLpStr,
     _flags: MapiResolveNameFlags,
     _reserved: ULong,
-    _recipient: *const RawMapiRecipDesc, // lpMapiRecipDesc FAR *lppRecip
+    // lpMapiRecipDesc FAR *lppRecip
+    _recipient: *const RawMapiRecipDesc,
 ) -> MapiStatusCode {
     commands::log_to_file("mapiresolvename", "");
     MapiStatusCode::NotSupported

@@ -21,6 +21,7 @@ pipeline {
 	stages {
 		stage('run tests') {
 			steps {
+			    pwsh 'cargo fmt -- --check'
 			    pwsh 'cargo clean'
  			    pwsh 'cargo test --target "x86_64-pc-windows-msvc"'
 			}

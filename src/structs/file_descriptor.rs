@@ -10,15 +10,16 @@ use crate::types::*;
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawMapiFileTagExt {
-    reserved: ULong,
     // ULONG ulReserved - reserved, must be zero
-    cb_tag: ULong,
+    reserved: ULong,
     // ULONG cbTag - size in bytes of the value defined by the lpTag member.
-    lp_tag: LpByte,
+    cb_tag: ULong,
     // LPBYTE lpTag - X.400 OID for this attachment type
-    cb_encoding: ULong,
+    lp_tag: LpByte,
     // ULONG cbEncoding - size in bytes of
-    lp_encoding: LpByte, // LPBYTE lpEncoding - X.400 OID for this attachment's encoding
+    cb_encoding: ULong,
+    // LPBYTE lpEncoding - X.400 OID for this attachment's encoding
+    lp_encoding: LpByte,
 }
 
 #[derive(Debug)]
@@ -51,7 +52,10 @@ impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
             let raw = unsafe { &*raw_ptr };
             Ok(FileTagExtension {
                 tag: conversion::copy_c_array_to_vec(raw.lp_tag, raw.cb_tag as usize),
-                encoding: conversion::copy_c_array_to_vec(raw.lp_encoding, raw.cb_encoding as usize),
+                encoding: conversion::copy_c_array_to_vec(
+                    raw.lp_encoding,
+                    raw.cb_encoding as usize,
+                ),
             })
         }
     }
@@ -60,17 +64,18 @@ impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawMapiFileDesc {
-    reserved: ULong,
     // ULONG  ulReserved - must be zero
-    flags: MapiFileFlags,
+    reserved: ULong,
     // ULONG  flFlags - flags
-    position: ULong,
+    flags: MapiFileFlags,
     // ULONG  nPosition - character in text to be replaced by attachment
-    pub path_name: LpStr,
+    position: ULong,
     // LPSTR  lpszPathName - full path name of attachment file
-    file_name: LpStr,
+    pub path_name: LpStr,
     // LPSTR  lpszFileName - original file name (optional)
-    file_type: *const RawMapiFileTagExt, // LPVOID lpFileType - attachment file type (can be lpMapiFileTagExt)
+    file_name: LpStr,
+    // LPVOID lpFileType - attachment file type (can be lpMapiFileTagExt)
+    file_type: *const RawMapiFileTagExt,
 }
 
 #[derive(Debug)]
@@ -88,8 +93,9 @@ impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
     type Error = ();
 
     fn try_from(raw: &RawMapiFileDesc) -> Result<Self, Self::Error> {
-        if let Some(file_path) = conversion::maybe_string_from_raw_ptr(raw.path_name)
-            .map(PathBuf::from) {
+        if let Some(file_path) =
+            conversion::maybe_string_from_raw_ptr(raw.path_name).map(PathBuf::from)
+        {
             Ok(FileDescriptor {
                 flags: raw.flags,
                 position: raw.position,
@@ -118,9 +124,7 @@ impl FileDescriptor {
     /// check if the last component of the file descriptor's path is the same as its file name.
     /// returns false if file_name does not contain a file name or file_path is the root dir
     fn needs_consolidation(&self) -> bool {
-        let file_name = self.file_name.as_ref()
-            .map(|pb| pb.file_name())
-            .flatten();
+        let file_name = self.file_name.as_ref().map(|pb| pb.file_name()).flatten();
 
         // this could be a dir name, no easy way to tell
         // will be none if the last element is '..' or if

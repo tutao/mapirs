@@ -14,29 +14,30 @@ use crate::types::*;
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawMapiMessage {
-    reserved: ULong,
     // ULONG ulReserved - reserved, must be 0 or CP_UTF8
-    subject: LpStr,
+    reserved: ULong,
     // LPSTR lpszSubject - message subject
-    note_text: LpStr,
+    subject: LpStr,
     // LPSTR lpszNoteText - message text
-    message_type: LpStr,
+    note_text: LpStr,
     // LPSTR lpszMessageType - message class
-    date_received: LpStr,
+    message_type: LpStr,
     // LPSTR lpszDateReceived - in YYYY/MM/DD HH:MM format
-    conversation_id: LpStr,
+    date_received: LpStr,
     // LPSTR lpszConversationID - conversation thread id
-    flags: MapiMessageFlags,
+    conversation_id: LpStr,
     // FLAGS flFlags
-    originator: *const RawMapiRecipDesc,
+    flags: MapiMessageFlags,
     // lpMapiRecipDesc lpOriginator
-    recip_count: ULong,
+    originator: *const RawMapiRecipDesc,
     // ULONG nRecipCount - number of recipients
-    recips: *const RawMapiRecipDesc,
+    recip_count: ULong,
     // lpMapiRecipDesc lpRecips - recipient descriptors
-    file_count: ULong,
+    recips: *const RawMapiRecipDesc,
     // ULONG nFileCount - # of file attachments
-    files: *const RawMapiFileDesc,       // lpMapiFileDesc lpFiles - attachment descriptors
+    file_count: ULong,
+    // lpMapiFileDesc lpFiles - attachment descriptors
+    files: *const RawMapiFileDesc,
 }
 
 #[derive(Debug)]
@@ -75,20 +76,24 @@ impl TryFrom<*const RawMapiMessage> for Message {
             */
             let raw = unsafe { &*raw_ptr };
             let originator_result = RecipientDescriptor::try_from(raw.originator);
-            let recips: Vec<RecipientDescriptor> = conversion::raw_to_vec(raw.recips, raw.recip_count as usize)
-                .into_iter()
-                .flatten()
-                .collect();
+            let recips: Vec<RecipientDescriptor> =
+                conversion::raw_to_vec(raw.recips, raw.recip_count as usize)
+                    .into_iter()
+                    .flatten()
+                    .collect();
             if recips.len() < raw.recip_count as usize {
                 log_to_file(
                     "Message::from::<RawMapiMessage>",
                     "could not parse one or more RecipientDescriptors",
                 );
             }
-            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<FileDescriptor, RawMapiFileDesc>(raw.files, raw.file_count as usize)
-                .into_iter()
-                .flatten()
-                .collect();
+            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<
+                FileDescriptor,
+                RawMapiFileDesc,
+            >(raw.files, raw.file_count as usize)
+            .into_iter()
+            .flatten()
+            .collect();
             if files.len() < raw.file_count as usize {
                 log_to_file(
                     "Message::from::<RawMapiMessage>",
@@ -128,7 +133,8 @@ impl Message {
     /// or not using file_name at all.
     pub fn ensure_attachments(&self) -> Vec<PathBuf> {
         let tmp_path: Option<PathBuf> = environment::tmp_path().ok().map(|p| p.into());
-        self.files.iter()
+        self.files
+            .iter()
             .map(|desc| desc.consolidate_into(&tmp_path))
             .collect()
     }
@@ -148,12 +154,8 @@ impl Message {
             .skip(1)
             .filter_map(|r| r.address.clone())
             .collect::<Vec<String>>();
-        let subject = self
-            .subject
-            .as_ref().cloned();
-        let body = self
-            .note_text
-            .as_ref().cloned();
+        let subject = self.subject.as_ref().cloned();
+        let body = self.note_text.as_ref().cloned();
 
         let mut url_parts = vec![];
 
@@ -180,7 +182,12 @@ impl Message {
     }
 
     #[cfg(test)]
-    pub fn new(to: Vec<&str>, body: Option<&str>, subject: Option<&str>, attach: Vec<FileDescriptor>) -> Self {
+    pub fn new(
+        to: Vec<&str>,
+        body: Option<&str>,
+        subject: Option<&str>,
+        attach: Vec<FileDescriptor>,
+    ) -> Self {
         Self {
             subject: subject.map(|s| s.to_owned()),
             note_text: body.map(|b| b.to_owned()),
@@ -189,7 +196,10 @@ impl Message {
             conversation_id: None,
             flags: MapiMessageFlags::empty(),
             originator: None,
-            recips: to.into_iter().map(|t| RecipientDescriptor::new(t)).collect(),
+            recips: to
+                .into_iter()
+                .map(|t| RecipientDescriptor::new(t))
+                .collect(),
             files: attach,
         }
     }
@@ -201,40 +211,51 @@ mod tests {
 
     #[test]
     fn message_make_mailto_works() {
-        assert_eq!(Message::new(
-            vec![],
-            None,
-            None,
-            vec![],
-        ).make_mailto_link(), "mailto:?");
+        assert_eq!(
+            Message::new(vec![], None, None, vec![]).make_mailto_link(),
+            "mailto:?"
+        );
 
-        assert_eq!(Message::new(
-            vec!["a@b.de", "b@c.de", "d@g.de"],
-            None,
-            None,
-            vec![],
-        ).make_mailto_link(), "mailto:a@b.de?cc=b@c.de,d@g.de");
+        assert_eq!(
+            Message::new(vec!["a@b.de", "b@c.de", "d@g.de"], None, None, vec![]).make_mailto_link(),
+            "mailto:a@b.de?cc=b@c.de,d@g.de"
+        );
 
-        assert_eq!(Message::new(
-            vec!["a@b.de"],
-            None,
-            None,
-            vec![FileDescriptor::new("C:\\some\\path file.jpg", "file.txt".into())],
-        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Ctmp%5Cfile.txt");
+        assert_eq!(
+            Message::new(
+                vec!["a@b.de"],
+                None,
+                None,
+                vec![FileDescriptor::new(
+                    "C:\\some\\path file.jpg",
+                    "file.txt".into(),
+                )],
+            )
+            .make_mailto_link(),
+            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cfile.txt"
+        );
 
-        assert_eq!(Message::new(
-            vec!["a@b.de"],
-            None,
-            None,
-            vec![FileDescriptor::new("C:\\", "file.txt".into())],
-        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5C");
+        assert_eq!(
+            Message::new(
+                vec!["a@b.de"],
+                None,
+                None,
+                vec![FileDescriptor::new("C:\\", "file.txt".into())],
+            )
+            .make_mailto_link(),
+            "mailto:a@b.de?attach=C%3A%5C"
+        );
 
-        assert_eq!(Message::new(
-            vec!["a@b.de"],
-            None,
-            None,
-            vec![FileDescriptor::new("C:\\some\\path file.jpg", None)],
-        ).make_mailto_link(), "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg");
+        assert_eq!(
+            Message::new(
+                vec!["a@b.de"],
+                None,
+                None,
+                vec![FileDescriptor::new("C:\\some\\path file.jpg", None)],
+            )
+            .make_mailto_link(),
+            "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg"
+        );
 
         assert_eq!(Message::new(
             vec!["a@b.de"],

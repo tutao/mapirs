@@ -6,17 +6,18 @@ use crate::types::*;
 #[repr(C)]
 #[derive(Debug)]
 pub struct RawMapiRecipDesc {
-    reserved: ULong,
     // ULONG ulReserved - reserved for future use
-    recip_class: ULong,
+    reserved: ULong,
     // ULONG ulRecipClass - recipient class
-    name: LpStr,
+    recip_class: ULong,
     // LPSTR lpszName - recipient name
-    address: LpStr,
+    name: LpStr,
     // LPSTR lpszAddress - recitpient address (optional)
-    eid_size: ULong,
+    address: LpStr,
     // ULONG ulEIDSize count in bytes of size of pEntryID
-    entry_id: *const libc::c_uchar, // LPVOID lpEntryID system-specific recipient reference
+    eid_size: ULong,
+    // LPVOID lpEntryID system-specific recipient reference
+    entry_id: *const libc::c_uchar,
 }
 
 #[derive(Debug)]
