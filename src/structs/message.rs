@@ -133,9 +133,6 @@ impl Message {
     /// or not using file_name at all.
     pub fn ensure_attachments(&self) -> Vec<PathBuf> {
         let tmp_path: Option<PathBuf> = environment::tmp_path().ok().map(|p| p.into());
-        if self.files.len() < 0 {
-            log_to_file("mork", "mork");
-        }
         self.files
             .iter()
             .map(|desc| desc.consolidate_into(&tmp_path))

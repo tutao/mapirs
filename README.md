@@ -55,7 +55,8 @@ the dll will be placed in `./target/x86_64-pc-windows-gnu/{release,debug}/mapirs
 # Notes
 
 * To get the IntelliJ IDEA Rust Plugin to ignore/check code that is inactive due to attributes like
-`#[cfg(target_os = "windows")]`, open `Ctrl + Shift + A -> Registry... ` and toggle `org.rust.lang.cfg.attributes`
+  `#[cfg(target_os = "windows")]`, open `Ctrl + Shift + A -> Registry... ` and toggle `org.rust.lang.cfg.attributes`
 * licenses.html has been generated with https://github.com/EmbarkStudios/cargo-about :
-`cargo-about init` and then `cargo-about generate about.hbs > licenses.html`
-
+  `cargo-about init` and then `cargo-about generate about.hbs > licenses.html`
+* the CI script uses clippy and rustfmt to check the code, so run `cargo clippy` and `cargo fmt` before committing (in that
+  order)
