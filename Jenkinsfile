@@ -22,7 +22,7 @@ pipeline {
 		stage('run tests') {
 			steps {
 			    pwsh 'cargo fmt -- --check'
-			    pwsn 'cargo clippy'
+			    pwsh 'cargo clippy --target "x86_64-pc-windows-msvc" -- -D clippy::all'
 			    pwsh 'cargo clean'
  			    pwsh 'cargo test --target "x86_64-pc-windows-msvc"'
 			}

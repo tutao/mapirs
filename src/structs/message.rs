@@ -87,7 +87,13 @@ impl TryFrom<*const RawMapiMessage> for Message {
                     "could not parse one or more RecipientDescriptors",
                 );
             }
-            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<FileDescriptor, RawMapiFileDesc, >(raw.files, raw.file_count as usize).into_iter().flatten().collect();
+            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<
+                FileDescriptor,
+                RawMapiFileDesc,
+            >(raw.files, raw.file_count as usize)
+            .into_iter()
+            .flatten()
+            .collect();
             if files.len() < raw.file_count as usize {
                 log_to_file(
                     "Message::from::<RawMapiMessage>",
@@ -127,6 +133,9 @@ impl Message {
     /// or not using file_name at all.
     pub fn ensure_attachments(&self) -> Vec<PathBuf> {
         let tmp_path: Option<PathBuf> = environment::tmp_path().ok().map(|p| p.into());
+        if self.files.len() < 0 {
+            log_to_file("mork", "mork");
+        }
         self.files
             .iter()
             .map(|desc| desc.consolidate_into(&tmp_path))
