@@ -87,13 +87,7 @@ impl TryFrom<*const RawMapiMessage> for Message {
                     "could not parse one or more RecipientDescriptors",
                 );
             }
-            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<
-                FileDescriptor,
-                RawMapiFileDesc,
-            >(raw.files, raw.file_count as usize)
-            .into_iter()
-            .flatten()
-            .collect();
+            let files: Vec<FileDescriptor> = conversion::raw_to_vec::<FileDescriptor, RawMapiFileDesc, >(raw.files, raw.file_count as usize).into_iter().flatten().collect();
             if files.len() < raw.file_count as usize {
                 log_to_file(
                     "Message::from::<RawMapiMessage>",
