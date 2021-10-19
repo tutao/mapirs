@@ -131,11 +131,10 @@ impl FileDescriptor {
         // this could be a dir name, no easy way to tell
         let path_file_name = self.path_name.file_name();
 
-        if file_name.is_none() {
-            return false;
+        match file_name {
+            Some(fp) => path_file_name != fp,
+            None => false,
         }
-
-        path_file_name != file_name.unwrap()
     }
 
     /// take the file at self.path_name and move it to tmp_path + self.file_name if
