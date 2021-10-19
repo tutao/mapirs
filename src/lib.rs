@@ -21,3 +21,5 @@ mod commands;
 mod environment;
 // the external API surface exposed to windows
 mod ffi;
+// path with a file_name() method that's guaranteed to return a value
+mod file_path;

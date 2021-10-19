@@ -116,21 +116,22 @@ impl TryFrom<*const RawMapiMessage> for Message {
 }
 
 impl Message {
-    /// Copy the files to be attached to a location that consolidates the name and the path in the
-    /// file descriptors.
+    /// Copy the files to be attached to a temp directory that's accessible by tutanota.
+    /// it copies the file from the file path to the temp directory and renames it so the
+    /// name matches file_name (if present).
     ///
-    /// FileDescriptors may have a path and a separate file name, but we only have a single path to
-    /// pass in the mailto-url, so the file name at the end of the path should be what's in the
+    /// Reasons for doing this:
+    /// * FileDescriptors may have a path and a separate file name, but we only have a single path
+    /// to pass in the mailto-url, so the file name at the end of the path should be what's in the
     /// file descriptor.
     ///
-    /// This doesn't do anything if the file name is the same as the last element of the file path
-    /// or if the attachment file descriptor doesn't have a separate file name.
-    /// otherwise, it copies the file from the file path to the temp directory and renames it so the
-    /// name matches file_name
+    /// * we return as soon as we send the command to start tutanota, and some applications using
+    /// mapi to send attachments will delete the file they passed as soon as they get back control,
+    /// like Adobe Acrobat Reader.
     ///
     /// This will lead to some files being attached from an unexpected location, but it is
-    /// preferable to copying the file next to the one with the wrong name and possibly clobbering other files
-    /// or not using file_name at all.
+    /// preferable to copying the file next to the one with the wrong name and possibly clobbering
+    /// other files or ignoring file_name.
     pub fn ensure_attachments(&self) -> Vec<PathBuf> {
         let tmp_path: Option<PathBuf> = environment::tmp_path().ok().map(|p| p.into());
         self.files
@@ -240,21 +241,10 @@ mod tests {
                 vec!["a@b.de"],
                 None,
                 None,
-                vec![FileDescriptor::new("C:\\", "file.txt".into())],
-            )
-            .make_mailto_link(),
-            "mailto:a@b.de?attach=C%3A%5C"
-        );
-
-        assert_eq!(
-            Message::new(
-                vec!["a@b.de"],
-                None,
-                None,
                 vec![FileDescriptor::new("C:\\some\\path file.jpg", None)],
             )
             .make_mailto_link(),
-            "mailto:a@b.de?attach=C%3A%5Csome%5Cpath%20file.jpg"
+            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cpath%20file.jpg"
         );
 
         assert_eq!(Message::new(

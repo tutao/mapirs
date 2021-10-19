@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::ffi::conversion;
+use crate::file_path::FilePath;
 use crate::flags::MapiFileFlags;
 use crate::types::*;
 
@@ -83,7 +84,7 @@ pub struct FileDescriptor {
     flags: MapiFileFlags,
     position: ULong,
     /// absolute path to attachment
-    pub path_name: PathBuf,
+    pub path_name: FilePath,
     /// file name to use for the attachment (if different from the name in the path)
     pub file_name: Option<PathBuf>,
     file_type: Option<FileTagExtension>,
@@ -96,6 +97,7 @@ impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
         if let Some(file_path) =
             conversion::maybe_string_from_raw_ptr(raw.path_name).map(PathBuf::from)
         {
+            let file_path: FilePath = FilePath::try_from(file_path)?;
             Ok(FileDescriptor {
                 flags: raw.flags,
                 position: raw.position,
@@ -115,59 +117,66 @@ impl FileDescriptor {
         Self {
             flags: MapiFileFlags::empty(),
             position: 0,
-            path_name: PathBuf::from(file_path),
+            path_name: FilePath::try_from(PathBuf::from(file_path)).unwrap(),
             file_name: file_name.map(PathBuf::from),
             file_type: None,
         }
     }
 
-    /// check if the last component of the file descriptor's path is the same as its file name.
-    /// returns false if file_name does not contain a file name or file_path is the root dir
-    fn needs_consolidation(&self) -> bool {
+    /// check if the last component of the file descriptor's path is different from its file_name.
+    /// returns false if file_name is None
+    fn needs_new_name(&self) -> bool {
         let file_name = self.file_name.as_ref().map(|pb| pb.file_name()).flatten();
 
         // this could be a dir name, no easy way to tell
-        // will be none if the last element is '..' or if
-        // file_path is the root
         let path_file_name = self.path_name.file_name();
 
-        if path_file_name.is_none() || file_name.is_none() {
+        if file_name.is_none() {
             return false;
         }
 
-        path_file_name != file_name
+        path_file_name != file_name.unwrap()
     }
 
     /// take the file at self.path_name and move it to tmp_path + self.file_name if
-    /// the first's last component is not self.file_name and the latter makes sense.
+    /// the self.path_name's last component is not self.file_name and to
+    /// tmp_path + basename(self.path_name) otherwise.
     ///
     /// return the path that points to the file to be attached
     #[cfg(not(test))]
     pub fn consolidate_into(&self, tmp_path: &Option<PathBuf>) -> PathBuf {
-        if tmp_path.is_some() && self.needs_consolidation() {
-            // unwrap is OK because needs_consolidation returns false when file_name is None.
-            let trg_cloned = tmp_path.as_ref().unwrap().clone();
-            let trg_name_cloned = self.file_name.as_ref().unwrap().clone();
-            let new_path = trg_cloned.join(trg_name_cloned);
+        if tmp_path.is_some() {
+            let trg_path_cloned = tmp_path.as_ref().unwrap().clone();
+            let trg_name_cloned = if self.needs_new_name() {
+                // unwrap is OK because needs_new_name returns false when file_name is None.
+                self.file_name.as_ref().unwrap().clone()
+            } else {
+                self.path_name.file_name().into()
+            };
+            let new_path = trg_path_cloned.join(trg_name_cloned);
             if fs::copy(&self.path_name, &new_path).is_ok() {
                 return new_path;
             }
         }
 
-        self.path_name.clone()
+        self.path_name.clone().into()
     }
 
     #[cfg(test)]
     pub fn consolidate_into(&self, tmp_path: &Option<PathBuf>) -> PathBuf {
-        if tmp_path.is_some() && self.needs_consolidation() {
-            // unwrap is OK because needs_consolidation returns false when file_name is None.
-            let trg_cloned = tmp_path.as_ref().unwrap().clone();
-            let trg_name_cloned = self.file_name.as_ref().unwrap().clone();
-            let new_path = trg_cloned.join(trg_name_cloned);
+        if tmp_path.is_some() {
+            let trg_path_cloned = tmp_path.as_ref().unwrap().clone();
+            let trg_name_cloned = if self.needs_new_name() {
+                // unwrap is OK because needs_new_name returns false when file_name is None.
+                self.file_name.as_ref().unwrap().clone()
+            } else {
+                self.path_name.file_name().into()
+            };
+            let new_path = trg_path_cloned.join(trg_name_cloned);
             return new_path;
         }
 
-        self.path_name.clone()
+        self.path_name.clone().into()
     }
 }
 
@@ -176,11 +185,9 @@ mod tests {
     use crate::structs::FileDescriptor;
 
     #[test]
-    fn needs_consolidation_works() {
-        assert!(!FileDescriptor::new(&"C:\\hello.txt", Some("hello.txt")).needs_consolidation());
-        assert!(FileDescriptor::new(&"C:\\hello.txt", Some("ciao.txt")).needs_consolidation());
-        assert!(!FileDescriptor::new(&"C:\\hello.txt", None).needs_consolidation());
-        assert!(!FileDescriptor::new(&"C:\\", Some("hello.txt")).needs_consolidation());
-        assert!(!FileDescriptor::new(&"C:\\", None).needs_consolidation());
+    fn needs_new_name_works() {
+        assert!(!FileDescriptor::new(&"C:\\hello.txt", Some("hello.txt")).needs_new_name());
+        assert!(FileDescriptor::new(&"C:\\hello.txt", Some("ciao.txt")).needs_new_name());
+        assert!(!FileDescriptor::new(&"C:\\hello.txt", None).needs_new_name());
     }
 }
