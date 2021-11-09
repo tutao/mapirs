@@ -178,7 +178,7 @@ impl Message {
             }
         }
         let lnk = format!("mailto:{}?{}", to, url_parts.join("&"));
-        log_to_file("make_mailto", &lnk);
+        log_to_file("make_mailto", "finished");
         lnk
     }
 
