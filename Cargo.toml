@@ -21,8 +21,8 @@ directories = "4.0.1"
 urlencoding = "2.1.0"
 # access the windows registry
 winreg = "0.9.0"
-# timestamp handling & formatting
-chrono = "0.4.19"
+# time formatting
+time = { version = "0.3.4", features = ["formatting", "macros"] }
 # generate file names
 sha2 = "0.9.8"
 
