@@ -6,9 +6,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use chrono::prelude::DateTime;
-use chrono::Utc;
 use sha2::{Digest, Sha256};
+use time::{macros::format_description, OffsetDateTime};
 use winreg::{enums::*, RegKey};
 
 fn reg_key() -> io::Result<RegKey> {
@@ -132,8 +131,11 @@ pub fn sha_head(
 
 /// get the current system time as a formatted string
 pub fn current_time_formatted() -> String {
-    let date_time = DateTime::<Utc>::from(SystemTime::now());
-    date_time.format("%Y-%m-%d | %H:%M:%S.%3f").to_string()
+    let now = OffsetDateTime::now_utc();
+    let desc =
+        format_description!("[year]-[month]-[day] | [hour]:[minute]:[second].[subsecond digits:3]");
+    now.format(desc)
+        .unwrap_or_else(|_| "0000-00-00 | 00:00:00.000".to_owned())
 }
 
 #[cfg(test)]
