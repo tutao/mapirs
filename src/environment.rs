@@ -7,6 +7,7 @@ use std::time::SystemTime;
 
 use chrono::prelude::DateTime;
 use chrono::Utc;
+use sha2::{Digest, Sha256};
 use winreg::{enums::*, RegKey};
 
 fn reg_key() -> io::Result<RegKey> {
@@ -103,6 +104,18 @@ fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
     } else {
         false
     }
+}
+
+/// we may get the same filename multiple times
+/// we put each file into its own subfolder that's named
+/// after the first 8 characters of the hex-encoded SHA256 hash
+/// of the file contents
+pub fn get_subfolder_from_sha<P: AsRef<Path>>(filepath: P) -> io::Result<String> {
+    let mut file = File::open(filepath)?;
+    let mut sha256 = Sha256::new();
+    io::copy(&mut file, &mut sha256)?;
+    let output = format!("{:x}", sha256.finalize());
+    Ok(output[..8].to_owned())
 }
 
 /// get the current system time as a formatted string

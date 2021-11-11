@@ -23,6 +23,8 @@ urlencoding = "2.1.0"
 winreg = "0.9.0"
 # timestamp handling & formatting
 chrono = "0.4.19"
+# generate file names
+sha2 = "0.9.8"
 
 # turn on LTO
 # reduces the lib's size from 4.5MB to 1.9MB.
