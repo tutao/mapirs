@@ -233,7 +233,7 @@ mod tests {
                 )],
             )
             .make_mailto_link(),
-            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cfile.txt"
+            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cxxxxxxxx%5Cfile.txt"
         );
 
         assert_eq!(
@@ -244,7 +244,7 @@ mod tests {
                 vec![FileDescriptor::new("C:\\some\\path file.jpg", None)],
             )
             .make_mailto_link(),
-            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cpath%20file.jpg"
+            "mailto:a@b.de?attach=C%3A%5Ctmp%5Cxxxxxxxx%5Cpath%20file.jpg"
         );
 
         assert_eq!(Message::new(

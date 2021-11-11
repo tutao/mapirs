@@ -3,6 +3,7 @@ use std::convert::{From, TryFrom};
 use std::fs;
 use std::path::PathBuf;
 
+use crate::environment::get_subfolder_from_sha;
 use crate::ffi::conversion;
 use crate::file_path::FilePath;
 use crate::flags::MapiFileFlags;
@@ -152,7 +153,9 @@ impl FileDescriptor {
             } else {
                 self.path_name.file_name().into()
             };
-            let new_path = trg_path_cloned.join(trg_name_cloned);
+            let sub_name =
+                get_subfolder_from_sha(&self.path_name).unwrap_or_else(|_| "xxxxxxxx".to_owned());
+            let new_path = trg_path_cloned.join(sub_name).join(trg_name_cloned);
             if fs::copy(&self.path_name, &new_path).is_ok() {
                 return new_path;
             }
@@ -171,7 +174,7 @@ impl FileDescriptor {
             } else {
                 self.path_name.file_name().into()
             };
-            let new_path = trg_path_cloned.join(trg_name_cloned);
+            let new_path = trg_path_cloned.join(&"xxxxxxxx").join(trg_name_cloned);
             return new_path;
         }
 
