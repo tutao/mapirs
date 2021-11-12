@@ -1,4 +1,5 @@
 use std::ffi::OsString;
+use std::fmt::Write;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -108,18 +109,43 @@ fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
 
 /// we may get the same filename multiple times
 /// we put each file into its own subfolder that's named
-/// after the first 8 characters of the hex-encoded SHA256 hash
+/// after the first 4 characters of the hex-encoded SHA256 hash
 /// of the file contents
-pub fn get_subfolder_from_sha<P: AsRef<Path>>(filepath: P) -> io::Result<String> {
+pub fn make_subfolder_name_from_content<P: AsRef<Path>>(filepath: P) -> io::Result<String> {
     let mut file = File::open(filepath)?;
     let mut sha256 = Sha256::new();
     io::copy(&mut file, &mut sha256)?;
-    let output = format!("{:x}", sha256.finalize());
-    Ok(output[..8].to_owned())
+    Ok(sha_head(sha256.finalize()))
+}
+
+pub fn sha_head(
+    sha256: sha2::digest::generic_array::GenericArray<u8, <Sha256 as Digest>::OutputSize>,
+) -> String {
+    let mut buf = String::with_capacity(4);
+    for byte in &sha256[..2] {
+        if write!(buf, "{:>2x}", byte).is_err() {
+            return "nope".to_owned();
+        };
+    }
+    buf
 }
 
 /// get the current system time as a formatted string
 pub fn current_time_formatted() -> String {
     let date_time = DateTime::<Utc>::from(SystemTime::now());
     date_time.format("%Y-%m-%d | %H:%M:%S.%3f").to_string()
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn sha_head_works() {
+        use crate::environment::sha_head;
+        use sha2::{Digest, Sha256};
+
+        let sha256 = Sha256::new();
+        let out = sha_head(sha256.finalize());
+        assert_eq!("e3b0", out);
+        assert_eq!(4, out.capacity());
+    }
 }
