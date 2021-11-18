@@ -86,3 +86,53 @@ pub fn copy_c_array_to_vec<T: Clone>(ptr: *const T, count: usize) -> Vec<T> {
         slc.to_vec()
     }
 }
+
+/// MapiSendDocuments gets its file paths as a list packed into a string with
+/// a delimiter:
+/// C:\a.txt;C:\b.txt;A:\d.jpg
+pub fn unpack_strings(packed: String, delim: &str) -> Vec<String> {
+    match delim {
+        "" => vec![packed],
+        _ => packed
+            .split(delim)
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_owned())
+            .collect(),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ffi::conversion::unpack_strings;
+
+    #[test]
+    fn unpack_strings_works() {
+        let delim = ";".to_owned();
+        assert_eq!(
+            unpack_strings("A;B;C".to_owned(), &delim),
+            vec!["A", "B", "C"]
+        );
+
+        assert_eq!(unpack_strings("".to_owned(), &delim), Vec::<String>::new());
+
+        assert_eq!(
+            unpack_strings(";;".to_owned(), &delim),
+            Vec::<String>::new()
+        );
+
+        assert_eq!(
+            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), &"".to_owned()),
+            vec!["C:\\a.txt;C:\\b.jpg"]
+        );
+
+        assert_eq!(
+            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), &"%".to_owned()),
+            vec!["C:\\a.txt;C:\\b.jpg"]
+        );
+
+        assert_eq!(
+            unpack_strings(";C:\\a.txt;".to_owned(), &delim),
+            vec!["C:\\a.txt"]
+        );
+    }
+}
