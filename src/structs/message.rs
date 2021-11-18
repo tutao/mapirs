@@ -208,7 +208,7 @@ impl Message {
     pub fn from_paths(paths: Vec<String>, names: Vec<String>) -> Self {
         // if we got file names, but not the the same amount as paths, we
         // will use the file paths as-is
-        let names: Vec<Option<&str>> = if !names.is_empty() && names.len() != paths.len() {
+        let names: Vec<Option<&str>> = if names.is_empty() || names.len() != paths.len() {
             vec![None; paths.len()]
         } else {
             names.iter().map(AsRef::as_ref).map(Some).collect()
