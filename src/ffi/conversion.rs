@@ -107,31 +107,28 @@ mod test {
 
     #[test]
     fn unpack_strings_works() {
-        let delim = ";".to_owned();
+        let delim = ";";
         assert_eq!(
-            unpack_strings("A;B;C".to_owned(), &delim),
+            unpack_strings("A;B;C".to_owned(), delim),
             vec!["A", "B", "C"]
         );
 
-        assert_eq!(unpack_strings("".to_owned(), &delim), Vec::<String>::new());
+        assert_eq!(unpack_strings("".to_owned(), delim), Vec::<String>::new());
+
+        assert_eq!(unpack_strings(";;".to_owned(), delim), Vec::<String>::new());
 
         assert_eq!(
-            unpack_strings(";;".to_owned(), &delim),
-            Vec::<String>::new()
-        );
-
-        assert_eq!(
-            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), &"".to_owned()),
+            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), ""),
             vec!["C:\\a.txt;C:\\b.jpg"]
         );
 
         assert_eq!(
-            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), &"%".to_owned()),
+            unpack_strings("C:\\a.txt;C:\\b.jpg".to_owned(), "%"),
             vec!["C:\\a.txt;C:\\b.jpg"]
         );
 
         assert_eq!(
-            unpack_strings(";C:\\a.txt;".to_owned(), &delim),
+            unpack_strings(";C:\\a.txt;".to_owned(), delim),
             vec!["C:\\a.txt"]
         );
     }
