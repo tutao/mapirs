@@ -57,11 +57,23 @@ impl TryFrom<*const RawMapiRecipDesc> for RecipientDescriptor {
 
 impl From<&RawMapiRecipDesc> for RecipientDescriptor {
     fn from(raw: &RawMapiRecipDesc) -> Self {
+        // some applications (Sage50) prefix the mail addresses with SMTP: which is
+        // technically not valid, but we're going to make a best effort to allow this.
+        // ":" is only allowed in quoted local parts so we're not going to destroy
+        // valid mail addresses with this.
+        let address = conversion::maybe_string_from_raw_ptr(raw.address).map(|a| {
+            if a.starts_with("SMTP:") {
+                a.strip_prefix("SMTP:").unwrap().to_owned()
+            } else {
+                a
+            }
+        });
+
         RecipientDescriptor {
             recip_class: raw.recip_class,
             name: conversion::maybe_string_from_raw_ptr(raw.name)
                 .unwrap_or_else(|| "MISSING_RECIP_NAME".to_owned()),
-            address: conversion::maybe_string_from_raw_ptr(raw.address),
+            address,
             entry_id: conversion::copy_c_array_to_vec(raw.entry_id, raw.eid_size as usize),
         }
     }
@@ -76,5 +88,35 @@ impl RecipientDescriptor {
             address: Some(address.to_owned()),
             entry_id: vec![0, 0, 0, 0],
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::ffi::CStr;
+
+    use crate::structs::{RawMapiRecipDesc, RecipientDescriptor};
+
+    #[test]
+    fn smtp_prefix_is_stripped() {
+        let raw = |a: &str| RawMapiRecipDesc {
+            reserved: 0,
+            recip_class: 0,
+            name: std::ptr::null(),
+            address: CStr::from_bytes_with_nul(a.as_bytes()).unwrap().as_ptr(),
+            eid_size: 0,
+            entry_id: std::ptr::null(),
+        };
+
+        let address1 = raw(&"SMTP:a@b.c\0");
+        let address2 = raw(&"\"SMTP:a\"@b.c\0");
+        assert_eq!(
+            RecipientDescriptor::from(&address1).address,
+            Some("a@b.c".to_owned())
+        );
+        assert_eq!(
+            RecipientDescriptor::from(&address2).address,
+            Some("\"SMTP:a\"@b.c".to_owned())
+        );
     }
 }
