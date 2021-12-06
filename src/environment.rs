@@ -17,12 +17,15 @@ fn reg_key() -> io::Result<RegKey> {
     // let subkey_path_release = "SOFTWARE\\450699d2-1c81-5ee5-aec6-08dddb7af9d7"
 
     // the client saves the path to the executable to hklm/software/Clients/Mail/tutanota/EXEPath
+    // or hkcu/software/Clients/Mail/tutanota/EXEPath
     // that key must be there, otherwise windows couldn't have called this DLL because
     // the path to it is next to it under DLLPath.
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let subk = "SOFTWARE\\Clients\\Mail\\tutanota";
     // if this fails, the client is not installed correctly or the registry is borked.
-    hklm.open_subkey("SOFTWARE\\Clients\\Mail\\tutanota")
+    hkcu.open_subkey(subk).or_else(|_| hklm.open_subkey(subk))
 }
 
 /// access the registry to try and get
@@ -38,7 +41,8 @@ pub fn client_path() -> io::Result<OsString> {
 #[cfg(not(test))]
 fn log_path() -> io::Result<OsString> {
     let tutanota_key = reg_key()?;
-    tutanota_key.get_value("LOGPath")
+    let log_dir: String = tutanota_key.get_value("LOGPath")?;
+    replace_profile(log_dir)
 }
 
 #[cfg(test)]
@@ -46,12 +50,23 @@ fn log_path() -> io::Result<OsString> {
     Ok(OsString::from("C:\\some\\weird\\path"))
 }
 
+/// replace the %USERPROFILE% placeholder in a String with
+/// the value of the USERPROFILE env variable
+fn replace_profile(val: String) -> io::Result<OsString> {
+    let profile =
+        std::env::var("USERPROFILE").map_err(|_e| io::Error::from(io::ErrorKind::NotFound))?;
+    Ok(OsString::from(
+        val.replace("%USERPROFILE%", profile.as_str()),
+    ))
+}
+
 /// retrieve the configured tmp dir from the registry and
 /// try to ensure the directory is there.
 #[cfg(not(test))]
 pub fn tmp_path() -> io::Result<OsString> {
     let tutanota_key = reg_key()?;
-    let tmp_dir = tutanota_key.get_value("TMPPath")?;
+    let tmp_dir: String = tutanota_key.get_value("TMPPath")?;
+    let tmp_dir = replace_profile(tmp_dir)?;
     fs::create_dir_all(&tmp_dir)?;
     Ok(tmp_dir)
 }
@@ -140,6 +155,8 @@ pub fn current_time_formatted() -> String {
 
 #[cfg(test)]
 mod test {
+    use crate::environment::replace_profile;
+
     #[test]
     fn sha_head_works() {
         use crate::environment::sha_head;
@@ -149,5 +166,20 @@ mod test {
         let out = sha_head(sha256.finalize());
         assert_eq!("e3b0", out);
         assert_eq!(4, out.capacity());
+    }
+
+    #[test]
+    fn replace_profile_works() {
+        let var = std::env::var("USERPROFILE");
+        std::env::set_var("USERPROFILE", "C:\\meck");
+        assert_eq!(
+            "C:\\meck\\a\\file.txt",
+            replace_profile("%USERPROFILE%\\a\\file.txt".to_owned()).unwrap()
+        );
+        std::env::remove_var("USERPROFILE");
+        assert!(replace_profile("%USERPROFILE%\\a\\file.txt".to_owned()).is_err());
+        if var.is_ok() {
+            std::env::set_var("USERPROFILE", var.unwrap());
+        }
     }
 }

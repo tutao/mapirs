@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 
 use crate::commands;
 use crate::commands::send_mail;
+use crate::ffi::conversion::{maybe_string_from_raw_ptr, unpack_strings};
 use crate::flags::{
     MapiAddressFlags, MapiDetailsFlags, MapiFindNextFlags, MapiLogonFlags, MapiReadMailFlags,
     MapiResolveNameFlags, MapiSaveMailFlags, MapiSendMailFlags, MapiStatusCode,
@@ -81,15 +82,35 @@ pub extern "C" fn MAPISendMail(
 pub extern "C" fn MAPISendDocuments(
     _ui_param: ULongPtr,
     // __in LPSTR lpszDelimChar
-    _delim_char: InLpStr,
+    delim_char: InLpStr,
     // __in LPSTR lpszFilePaths
-    _file_paths: InLpStr,
+    file_paths: InLpStr,
     // __in LPSTR lpszFileNames
-    _file_names: InLpStr,
+    file_names: InLpStr,
     _reserved: ULong,
 ) -> MapiStatusCode {
     commands::log_to_file("mapisenddocuments", "");
-    MapiStatusCode::NotSupported
+    // some app may put null as delim if there's only one path
+    let delim = maybe_string_from_raw_ptr(delim_char).unwrap_or_else(|| "".to_owned());
+
+    // spec says if this is empty or null, show sendmail dialog without attachments
+    let packed_paths = maybe_string_from_raw_ptr(file_paths).unwrap_or_else(|| "".to_owned());
+    // spec says if this is empty or null, ignore
+    let packed_names = maybe_string_from_raw_ptr(file_names).unwrap_or_else(|| "".to_owned());
+
+    let paths = unpack_strings(packed_paths, &delim);
+    let names = unpack_strings(packed_names, &delim);
+
+    let msg = Message::from_paths(paths, names);
+
+    commands::log_to_file("mapisenddocument", "parsed documents, sending...");
+    if let Err(e) = send_mail(msg) {
+        commands::log_to_file("mapisenddocument", &format!("could not send mail: {:?}", e));
+        MapiStatusCode::Failure
+    } else {
+        commands::log_to_file("mapisenddocument", "sent message!");
+        MapiStatusCode::Success
+    }
 }
 
 /// https://docs.microsoft.com/en-us/windows/win32/api/mapi/nc-mapi-mapifindnext

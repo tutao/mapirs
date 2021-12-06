@@ -113,7 +113,6 @@ impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
 }
 
 impl FileDescriptor {
-    #[cfg(test)]
     pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
         Self {
             flags: MapiFileFlags::empty(),
