@@ -44,11 +44,11 @@ pub struct RawMapiMessage {
 pub struct Message {
     subject: Option<String>,
     note_text: Option<String>,
-    message_type: Option<String>,
-    date_received: Option<String>,
-    conversation_id: Option<String>,
-    flags: MapiMessageFlags,
-    originator: Option<RecipientDescriptor>,
+    _message_type: Option<String>,
+    _date_received: Option<String>,
+    _conversation_id: Option<String>,
+    _flags: MapiMessageFlags,
+    _originator: Option<RecipientDescriptor>,
     recips: Vec<RecipientDescriptor>,
     files: Vec<FileDescriptor>,
 }
@@ -103,11 +103,11 @@ impl TryFrom<*const RawMapiMessage> for Message {
             Ok(Message {
                 subject: conversion::maybe_string_from_raw_ptr(raw.subject),
                 note_text: conversion::maybe_string_from_raw_ptr(raw.note_text),
-                message_type: conversion::maybe_string_from_raw_ptr(raw.message_type),
-                date_received: conversion::maybe_string_from_raw_ptr(raw.date_received),
-                conversation_id: conversion::maybe_string_from_raw_ptr(raw.conversation_id),
-                flags: raw.flags,
-                originator: originator_result.ok(),
+                _message_type: conversion::maybe_string_from_raw_ptr(raw.message_type),
+                _date_received: conversion::maybe_string_from_raw_ptr(raw.date_received),
+                _conversation_id: conversion::maybe_string_from_raw_ptr(raw.conversation_id),
+                _flags: raw.flags,
+                _originator: originator_result.ok(),
                 recips,
                 files,
             })
@@ -192,11 +192,11 @@ impl Message {
         Self {
             subject: subject.map(|s| s.to_owned()),
             note_text: body.map(|b| b.to_owned()),
-            message_type: None,
-            date_received: None,
-            conversation_id: None,
-            flags: MapiMessageFlags::empty(),
-            originator: None,
+            _message_type: None,
+            _date_received: None,
+            _conversation_id: None,
+            _flags: MapiMessageFlags::empty(),
+            _originator: None,
             recips: to
                 .into_iter()
                 .map(|t| RecipientDescriptor::new(t))
@@ -223,11 +223,11 @@ impl Message {
         Self {
             subject: None,
             note_text: None,
-            message_type: None,
-            date_received: None,
-            conversation_id: None,
-            flags: MapiMessageFlags::empty(),
-            originator: None,
+            _message_type: None,
+            _date_received: None,
+            _conversation_id: None,
+            _flags: MapiMessageFlags::empty(),
+            _originator: None,
             recips: vec![],
             files,
         }

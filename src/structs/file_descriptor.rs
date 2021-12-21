@@ -26,8 +26,8 @@ pub struct RawMapiFileTagExt {
 
 #[derive(Debug)]
 pub struct FileTagExtension {
-    tag: Vec<u8>,
-    encoding: Vec<u8>,
+    _tag: Vec<u8>,
+    _encoding: Vec<u8>,
 }
 
 impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
@@ -53,8 +53,8 @@ impl TryFrom<*const RawMapiFileTagExt> for FileTagExtension {
             */
             let raw = unsafe { &*raw_ptr };
             Ok(FileTagExtension {
-                tag: conversion::copy_c_array_to_vec(raw.lp_tag, raw.cb_tag as usize),
-                encoding: conversion::copy_c_array_to_vec(
+                _tag: conversion::copy_c_array_to_vec(raw.lp_tag, raw.cb_tag as usize),
+                _encoding: conversion::copy_c_array_to_vec(
                     raw.lp_encoding,
                     raw.cb_encoding as usize,
                 ),
@@ -82,13 +82,13 @@ pub struct RawMapiFileDesc {
 
 #[derive(Debug)]
 pub struct FileDescriptor {
-    flags: MapiFileFlags,
-    position: ULong,
+    _flags: MapiFileFlags,
+    _position: ULong,
     /// absolute path to attachment
     pub path_name: FilePath,
     /// file name to use for the attachment (if different from the name in the path)
     pub file_name: Option<PathBuf>,
-    file_type: Option<FileTagExtension>,
+    _file_type: Option<FileTagExtension>,
 }
 
 impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
@@ -100,11 +100,11 @@ impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
         {
             let file_path: FilePath = FilePath::try_from(file_path)?;
             Ok(FileDescriptor {
-                flags: raw.flags,
-                position: raw.position,
+                _flags: raw.flags,
+                _position: raw.position,
                 path_name: file_path,
                 file_name: conversion::maybe_string_from_raw_ptr(raw.file_name).map(PathBuf::from),
-                file_type: FileTagExtension::try_from(raw.file_type).ok(),
+                _file_type: FileTagExtension::try_from(raw.file_type).ok(),
             })
         } else {
             Err(())
@@ -115,11 +115,11 @@ impl TryFrom<&RawMapiFileDesc> for FileDescriptor {
 impl FileDescriptor {
     pub fn new(file_path: &str, file_name: Option<&str>) -> Self {
         Self {
-            flags: MapiFileFlags::empty(),
-            position: 0,
+            _flags: MapiFileFlags::empty(),
+            _position: 0,
             path_name: FilePath::try_from(PathBuf::from(file_path)).unwrap(),
             file_name: file_name.map(PathBuf::from),
-            file_type: None,
+            _file_type: None,
         }
     }
 
