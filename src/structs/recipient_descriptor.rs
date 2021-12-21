@@ -22,10 +22,10 @@ pub struct RawMapiRecipDesc {
 
 #[derive(Debug)]
 pub struct RecipientDescriptor {
-    recip_class: ULong,
-    name: String,
+    _recip_class: ULong,
+    _name: String,
     pub address: Option<String>,
-    entry_id: Vec<u8>,
+    _entry_id: Vec<u8>,
 }
 
 impl TryFrom<*const RawMapiRecipDesc> for RecipientDescriptor {
@@ -70,11 +70,11 @@ impl From<&RawMapiRecipDesc> for RecipientDescriptor {
         });
 
         RecipientDescriptor {
-            recip_class: raw.recip_class,
-            name: conversion::maybe_string_from_raw_ptr(raw.name)
+            _recip_class: raw.recip_class,
+            _name: conversion::maybe_string_from_raw_ptr(raw.name)
                 .unwrap_or_else(|| "MISSING_RECIP_NAME".to_owned()),
             address,
-            entry_id: conversion::copy_c_array_to_vec(raw.entry_id, raw.eid_size as usize),
+            _entry_id: conversion::copy_c_array_to_vec(raw.entry_id, raw.eid_size as usize),
         }
     }
 }
@@ -83,10 +83,10 @@ impl RecipientDescriptor {
     #[cfg(test)]
     pub fn new(address: &str) -> Self {
         Self {
-            recip_class: 0,
-            name: "".to_owned(),
+            _recip_class: 0,
+            _name: "".to_owned(),
             address: Some(address.to_owned()),
-            entry_id: vec![0, 0, 0, 0],
+            _entry_id: vec![0, 0, 0, 0],
         }
     }
 }
