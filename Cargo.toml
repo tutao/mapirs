@@ -1,6 +1,6 @@
 [package]
 name = "mapirs"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["nig <nig@tutao.de>"]
 edition = "2021"
 
