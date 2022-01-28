@@ -3,11 +3,14 @@ use std::convert::{From, TryFrom};
 use std::fs;
 use std::path::PathBuf;
 
+use crate::commands::log_to_file;
 use crate::environment::make_subfolder_name_from_content;
 use crate::ffi::conversion;
 use crate::file_path::FilePath;
 use crate::flags::MapiFileFlags;
 use crate::types::*;
+
+const FALLBACK_TMP_SUBDIR_PATH: &str = "xxxxxxxx";
 
 #[repr(C)]
 #[derive(Debug)]
@@ -142,7 +145,6 @@ impl FileDescriptor {
     /// tmp_path + basename(self.path_name) otherwise.
     ///
     /// return the path that points to the file to be attached
-    #[cfg(not(test))]
     pub fn consolidate_into(&self, tmp_path: &Option<PathBuf>) -> PathBuf {
         if tmp_path.is_some() {
             let trg_path_cloned = tmp_path.as_ref().unwrap().clone();
@@ -152,10 +154,9 @@ impl FileDescriptor {
             } else {
                 self.path_name.file_name().into()
             };
-            let sub_name = make_subfolder_name_from_content(&self.path_name)
-                .unwrap_or_else(|_| "xxxxxxxx".to_owned());
-            let new_path = trg_path_cloned.join(sub_name).join(trg_name_cloned);
-            if fs::copy(&self.path_name, &new_path).is_ok() {
+
+            if let Some(new_path) = self.copy_file_to_tmp_subdir(&trg_path_cloned, &trg_name_cloned)
+            {
                 return new_path;
             }
         }
@@ -163,32 +164,85 @@ impl FileDescriptor {
         self.path_name.clone().into()
     }
 
-    #[cfg(test)]
-    pub fn consolidate_into(&self, tmp_path: &Option<PathBuf>) -> PathBuf {
-        if tmp_path.is_some() {
-            let trg_path_cloned = tmp_path.as_ref().unwrap().clone();
-            let trg_name_cloned = if self.needs_new_name() {
-                // unwrap is OK because needs_new_name returns false when file_name is None.
-                self.file_name.as_ref().unwrap().clone()
-            } else {
-                self.path_name.file_name().into()
-            };
-            let new_path = trg_path_cloned.join(&"xxxxxxxx").join(trg_name_cloned);
-            return new_path;
+    #[cfg(not(test))]
+    fn copy_file_to_tmp_subdir(&self, tmp_path: &PathBuf, tmp_name: &PathBuf) -> Option<PathBuf> {
+        let sub_name = make_subfolder_name_from_content(&self.path_name)
+            .unwrap_or_else(|_| FALLBACK_TMP_SUBDIR_PATH.to_owned());
+        let tmp_subdir_path = tmp_path.join(sub_name);
+
+        if fs::create_dir_all(&tmp_subdir_path).is_err() {
+            log_to_file(
+                "FileDescriptor::copy_file_to_tmp_subdir",
+                "failed to create temporary directory for attachment",
+            );
+            return None;
         }
 
-        self.path_name.clone().into()
+        let dest = tmp_subdir_path.join(tmp_name);
+
+        if fs::copy(&self.path_name, &dest).is_err() {
+            log_to_file(
+                "FileDescriptor::copy_file_to_tmp_subdir",
+                "failed to copy file",
+            );
+            return None;
+        }
+
+        Some(dest)
+    }
+
+    #[cfg(test)]
+    fn copy_file_to_tmp_subdir(&self, tmp_path: &PathBuf, tmp_name: &PathBuf) -> Option<PathBuf> {
+        Some(tmp_path.join(FALLBACK_TMP_SUBDIR_PATH).join(tmp_name))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    use crate::structs::file_descriptor::FALLBACK_TMP_SUBDIR_PATH;
     use crate::structs::FileDescriptor;
 
     #[test]
     fn needs_new_name_works() {
-        assert!(!FileDescriptor::new(&"C:\\hello.txt", Some("hello.txt")).needs_new_name());
         assert!(FileDescriptor::new(&"C:\\hello.txt", Some("ciao.txt")).needs_new_name());
+
+        assert!(!FileDescriptor::new(&"C:\\hello.txt", Some("hello.txt")).needs_new_name());
         assert!(!FileDescriptor::new(&"C:\\hello.txt", None).needs_new_name());
+    }
+
+    #[test]
+    // TODO test the case where copying the file fails (would require some kind of refactoring, or just a static variable hack)
+    fn consolidate_into_works() {
+        assert_eq!(
+            FileDescriptor::new(&"C:\\User\\Doccies\\hello.txt", Some("hello.txt"))
+                .consolidate_into(&Some("C:\\User\\TmpDir".into())),
+            PathBuf::from(format!(
+                "C:\\User\\TmpDir\\{}\\hello.txt",
+                FALLBACK_TMP_SUBDIR_PATH
+            )),
+            "If the same file name is given, then it is copied with the same filename"
+        );
+
+        assert_eq!(
+            FileDescriptor::new(&"C:\\User\\Doccies\\hello.txt", Some("ciao.txt"))
+                .consolidate_into(&Some("C:\\User\\TmpDir".into())),
+            PathBuf::from(format!(
+                "C:\\User\\TmpDir\\{}\\ciao.txt",
+                FALLBACK_TMP_SUBDIR_PATH
+            )),
+            "If a different file name is given, then it copies with the new filename",
+        );
+
+        assert_eq!(
+            FileDescriptor::new(&"C:\\User\\Doccies\\hello.txt", None)
+                .consolidate_into(&Some("C:\\User\\TmpDir".into())),
+            PathBuf::from(format!(
+                "C:\\User\\TmpDir\\{}\\hello.txt",
+                FALLBACK_TMP_SUBDIR_PATH
+            )),
+            "If no file name is given, then it copies with the original filename"
+        );
     }
 }
