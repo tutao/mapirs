@@ -1,7 +1,7 @@
 use std::convert::{From, TryFrom};
 #[cfg(not(test))]
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::commands::log_to_file;
 use crate::environment::make_subfolder_name_from_content;
@@ -165,7 +165,7 @@ impl FileDescriptor {
     }
 
     #[cfg(not(test))]
-    fn copy_file_to_tmp_subdir(&self, tmp_path: &PathBuf, tmp_name: &PathBuf) -> Option<PathBuf> {
+    fn copy_file_to_tmp_subdir(&self, tmp_path: &Path, tmp_name: &Path) -> Option<PathBuf> {
         let sub_name = make_subfolder_name_from_content(&self.path_name)
             .unwrap_or_else(|_| FALLBACK_TMP_SUBDIR_PATH.to_owned());
         let tmp_subdir_path = tmp_path.join(sub_name);
