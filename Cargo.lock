@@ -131,7 +131,7 @@ dependencies = [
 
 [[package]]
 name = "mapirs"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bitflags",
  "directories",
