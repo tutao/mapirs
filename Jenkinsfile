@@ -50,6 +50,8 @@ pipeline {
 			steps {
 				unstash 'dll'
                 pwsh '''
+                    echo $Env:RELEASE_TAG
+
                     $checksum = (Get-FileHash -Algorithm SHA256 -Path $Env:RELEASE_ASSET_PATH).Hash.ToLower()
                     $url = "https://api.github.com/repos/tutao/mapirs/releases"
 
