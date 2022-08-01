@@ -50,7 +50,11 @@ pipeline {
 			steps {
 				unstash 'dll'
 				pwsh 'git tag $Env:RELEASE_TAG'
-				pwsh 'git push --tags'
+				withCredentials([string(credentialsId: 'github-access-token', variable: 'GITHUB_TOKEN')]) {
+				    pwsh 'git remote add origin-access https://$Env:GITHUB_TOKEN@github.com/tutao/mapirs.git'
+				    pwsh 'git push origin-access --tags'
+				    pwsh 'git remote remove origin-access'
+				}
 				sleep(10)
                 pwsh '''
                     echo $Env:RELEASE_TAG
