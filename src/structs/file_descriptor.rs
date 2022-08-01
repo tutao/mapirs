@@ -129,7 +129,7 @@ impl FileDescriptor {
     /// check if the last component of the file descriptor's path is different from its file_name.
     /// returns false if file_name is None
     fn needs_new_name(&self) -> bool {
-        let file_name = self.file_name.as_ref().map(|pb| pb.file_name()).flatten();
+        let file_name = self.file_name.as_ref().and_then(|pb| pb.file_name());
 
         // this could be a dir name, no easy way to tell
         let path_file_name = self.path_name.file_name();

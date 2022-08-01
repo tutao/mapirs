@@ -6,6 +6,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+use sha2::digest::OutputSizeUser;
 use sha2::{Digest, Sha256};
 use time::{macros::format_description, OffsetDateTime};
 use winreg::{enums::*, RegKey};
@@ -109,10 +110,8 @@ pub fn log_file() -> io::Result<File> {
 fn modified_within_day<P: AsRef<Path>>(filepath: P) -> bool {
     if let Some(v) = fs::metadata(filepath)
         .ok()
-        .map(|md| md.modified().ok())
-        .flatten()
-        .map(|modified| SystemTime::now().duration_since(modified).ok())
-        .flatten()
+        .and_then(|md| md.modified().ok())
+        .and_then(|modified| SystemTime::now().duration_since(modified).ok())
         .map(|dur| dur.as_secs() < 60 * 60 * 24)
     {
         v
@@ -133,7 +132,7 @@ pub fn make_subfolder_name_from_content<P: AsRef<Path>>(filepath: P) -> io::Resu
 }
 
 pub fn sha_head(
-    sha256: sha2::digest::generic_array::GenericArray<u8, <Sha256 as Digest>::OutputSize>,
+    sha256: sha2::digest::generic_array::GenericArray<u8, <Sha256 as OutputSizeUser>::OutputSize>,
 ) -> String {
     let mut buf = String::with_capacity(4);
     for byte in &sha256[..2] {

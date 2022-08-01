@@ -8,7 +8,7 @@ pipeline {
 	}
 
 	agent {
-		label 'win-full'
+		label 'win-native'
 	}
 
 	parameters {

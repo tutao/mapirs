@@ -12,10 +12,16 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Install nightly
+        run: rustup toolchain install nightly
+      - name: Install target
+        run: rustup target add --toolchain nightly x86_64-pc-windows-msvc
       - name: Check formatting
         run: cargo fmt -- --check
+      - name: Install clippy
+        run: rustup component add clippy --toolchain nightly-x86_64-pc-windows-msvc
       - name: Run lints
-        run: cargo clippy --target "x86_64-pc-windows-msvc" -- -D clippy::all
+        run: cargo +nightly clippy --target "x86_64-pc-windows-msvc" -Zunstable-options -- -D clippy::all
       - name: Run tests
-        run: cargo test --verbose --target "x86_64-pc-windows-msvc"
+        run: cargo +nightly test --verbose --target "x86_64-pc-windows-msvc"
