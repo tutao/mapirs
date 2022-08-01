@@ -49,6 +49,9 @@ pipeline {
 
 			steps {
 				unstash 'dll'
+				pwsh 'git tag $Env:RELEASE_TAG'
+				pwsh 'git push --tags'
+				sleep(10)
                 pwsh '''
                     echo $Env:RELEASE_TAG
 
