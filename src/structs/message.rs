@@ -145,7 +145,7 @@ impl Message {
         // address and put the rest (comma-separated) into cc.
         let to = self
             .recips
-            .get(0)
+            .first()
             .map(|r| r.address.clone())
             .unwrap_or_else(|| Some("".to_owned()))
             .unwrap();
